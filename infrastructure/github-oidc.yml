@@ -53,6 +53,10 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Ref RoleName
+      ManagedPolicyArns:
+        # Temporary broad access so SST can deploy all required resources.
+        # Tighten to least-privilege after the migration is stable.
+        - arn:aws:iam::aws:policy/AdministratorAccess
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -68,7 +72,7 @@ Resources:
                   - !Sub repo:${GitHubOwner}/${GitHubRepo}:ref:refs/heads/serverless
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
 
-  # Broad permissions for GitHub Actions role — scope these down once deployment is working
+  # Legacy inline policy retained for compatibility; managed policy above is the effective broad grant.
   GitHubDeployPolicy:
     Type: AWS::IAM::Policy
     Properties:
