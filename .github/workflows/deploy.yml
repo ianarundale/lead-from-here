@@ -74,6 +74,34 @@ jobs:
           role-session-name: GitHub-OIDC-Deployment
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Ensure EB service-linked role exists
+        run: |
+          # EB requires its service-linked role to exist before CloudFormation
+          # can create an EB application. Create it if this is the first time
+          # EB has been used in this account. The error if it already exists is safe to ignore.
+          aws iam create-service-linked-role \
+            --aws-service-name elasticbeanstalk.amazonaws.com 2>&1 \
+            | grep -v "already exists" || true
+
+      - name: Delete stack if in failed state
+        run: |
+          STATUS=$(aws cloudformation describe-stacks \
+            --stack-name lead-from-here-prod \
+            --region $AWS_REGION \
+            --query 'Stacks[0].StackStatus' \
+            --output text 2>/dev/null || echo "DOES_NOT_EXIST")
+          echo "Stack status: $STATUS"
+          if [[ "$STATUS" == "ROLLBACK_COMPLETE" || "$STATUS" == "CREATE_FAILED" ]]; then
+            echo "Stack is in $STATUS — deleting before redeploy"
+            aws cloudformation delete-stack \
+              --stack-name lead-from-here-prod \
+              --region $AWS_REGION
+            aws cloudformation wait stack-delete-complete \
+              --stack-name lead-from-here-prod \
+              --region $AWS_REGION
+            echo "Stack deleted."
+          fi
+
       - name: Deploy CloudFormation infrastructure
         run: |
           set +e

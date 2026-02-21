@@ -67,96 +67,27 @@ Resources:
                 token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOwner}/${GitHubRepo}:ref:refs/heads/main
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
 
-  # IAM Policy for Elastic Beanstalk - scoped to this project's resources
-  EBPolicy:
+  # Broad permissions for GitHub Actions role — scope these down once deployment is working
+  GitHubDeployPolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: !Sub ${RoleName}-EBPolicy
+      PolicyName: !Sub ${RoleName}-DeployPolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
-          # Application-level actions
           - Effect: Allow
             Action:
-              - elasticbeanstalk:CreateApplication
-              - elasticbeanstalk:UpdateApplication
-              - elasticbeanstalk:DeleteApplication
-              - elasticbeanstalk:DescribeApplications
-            Resource:
-              - !Sub arn:aws:elasticbeanstalk:${AWSRegion}:${AWS::AccountId}:application/${EBApplicationName}
-          # Environment-level actions
-          - Effect: Allow
-            Action:
-              - elasticbeanstalk:CreateEnvironment
-              - elasticbeanstalk:UpdateEnvironment
-              - elasticbeanstalk:TerminateEnvironment
-              - elasticbeanstalk:DescribeEnvironmentHealth
-              - elasticbeanstalk:DescribeEnvironmentResources
-              - elasticbeanstalk:RebuildEnvironment
-              - elasticbeanstalk:RestartAppServer
-            Resource:
-              - !Sub arn:aws:elasticbeanstalk:${AWSRegion}:${AWS::AccountId}:environment/${EBApplicationName}/${EBEnvironmentName}
-          # Application version actions
-          - Effect: Allow
-            Action:
-              - elasticbeanstalk:CreateApplicationVersion
-              - elasticbeanstalk:UpdateApplicationVersion
-              - elasticbeanstalk:DeleteApplicationVersion
-              - elasticbeanstalk:DescribeApplicationVersions
-            Resource:
-              - !Sub arn:aws:elasticbeanstalk:${AWSRegion}:${AWS::AccountId}:applicationversion/${EBApplicationName}/*
-          # Describe actions scoped to this application via condition key
-          # (resource-level ARNs are not supported for these actions, but
-          # elasticbeanstalk:InApplication restricts them to this application)
-          - Effect: Allow
-            Action:
-              - elasticbeanstalk:DescribeEnvironments
-              - elasticbeanstalk:DescribeEvents
-            Resource: "*"
-            Condition:
-              StringEquals:
-                elasticbeanstalk:InApplication: !Sub arn:aws:elasticbeanstalk:${AWSRegion}:${AWS::AccountId}:application/${EBApplicationName}
-          # Global read-only actions with no resource or tag context - cannot be restricted further
-          - Effect: Allow
-            Action:
-              - elasticbeanstalk:CheckDNSAvailability
-              - elasticbeanstalk:ListAvailableSolutionStacks
-            Resource: "*"
-          # Allow passing the EB instance profile role and service role to EC2/EB
-          - Effect: Allow
-            Action:
+              - elasticbeanstalk:*
+              - s3:*
+              - cloudformation:*
               - iam:PassRole
-            Resource:
-              - !Sub arn:aws:iam::${AWS::AccountId}:role/${EBApplicationName}-instance-role
-              - !Sub arn:aws:iam::${AWS::AccountId}:role/${EBApplicationName}-service-role
-      Roles:
-        - !Ref GitHubDeployRole
-
-  # IAM Policy for S3 (limited to deployment bucket)
-  S3Policy:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: !Sub ${RoleName}-S3Policy
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Action:
-              - s3:ListBucket
-            Resource:
-              - !Sub arn:aws:s3:::${S3BucketName}
-          - Effect: Allow
-            Action:
-              - s3:GetObject
-              - s3:PutObject
-            Resource:
-              - !Sub arn:aws:s3:::${S3BucketName}/*
+              - iam:CreateServiceLinkedRole
+            Resource: "*"
       Roles:
         - !Ref GitHubDeployRole
 
   # Dedicated execution role that CloudFormation assumes when deploying the
-  # infrastructure stack. Carrying IAM/S3/EB creation permissions here keeps
-  # them off the GitHub Actions role entirely.
+  # infrastructure stack.
   CFNExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -168,129 +99,8 @@ Resources:
             Principal:
               Service: cloudformation.amazonaws.com
             Action: sts:AssumeRole
-      Policies:
-        - PolicyName: CFNExecutionPolicy
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              # IAM: create/manage the EB service role and instance profile
-              # defined in cloudformation.yml, scoped to this project's naming pattern
-              - Effect: Allow
-                Action:
-                  - iam:CreateRole
-                  - iam:DeleteRole
-                  - iam:GetRole
-                  - iam:UpdateRole
-                  - iam:AttachRolePolicy
-                  - iam:DetachRolePolicy
-                  - iam:ListRolePolicies
-                  - iam:ListAttachedRolePolicies
-                  - iam:CreateInstanceProfile
-                  - iam:DeleteInstanceProfile
-                  - iam:GetInstanceProfile
-                  - iam:AddRoleToInstanceProfile
-                  - iam:RemoveRoleFromInstanceProfile
-                  - iam:ListInstanceProfilesForRole
-                  - iam:TagRole
-                  - iam:UntagRole
-                  - iam:TagInstanceProfile
-                  - iam:UntagInstanceProfile
-                Resource:
-                  - !Sub arn:aws:iam::${AWS::AccountId}:role/${EBApplicationName}-*
-                  - !Sub arn:aws:iam::${AWS::AccountId}:instance-profile/${EBApplicationName}-*
-              # PassRole: CloudFormation needs to pass the EB roles to EB when
-              # creating the environment
-              - Effect: Allow
-                Action: iam:PassRole
-                Resource:
-                  - !Sub arn:aws:iam::${AWS::AccountId}:role/${EBApplicationName}-*
-              # Allow creation of the EB service-linked role on first use in
-              # an account where EB has never been run before
-              - Effect: Allow
-                Action: iam:CreateServiceLinkedRole
-                Resource:
-                  - !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/elasticbeanstalk.amazonaws.com/*
-              # S3: create and configure the deployment bucket
-              - Effect: Allow
-                Action:
-                  - s3:CreateBucket
-                  - s3:DeleteBucket
-                  - s3:ListBucket
-                  - s3:GetBucketPolicy
-                  - s3:PutBucketPolicy
-                  - s3:DeleteBucketPolicy
-                  - s3:GetEncryptionConfiguration
-                  - s3:PutEncryptionConfiguration
-                  - s3:GetBucketVersioning
-                  - s3:PutBucketVersioning
-                  - s3:GetBucketPublicAccessBlock
-                  - s3:PutBucketPublicAccessBlock
-                Resource:
-                  - !Sub arn:aws:s3:::${S3BucketName}
-              # EB: manage the application and environment
-              # Resource: "*" required — CloudFormation also calls TagResource,
-              # UpdateApplicationResourceLifecycle, and configuration-template
-              # actions where resource-level scoping is not supported
-              - Effect: Allow
-                Action:
-                  - elasticbeanstalk:CreateApplication
-                  - elasticbeanstalk:UpdateApplication
-                  - elasticbeanstalk:DeleteApplication
-                  - elasticbeanstalk:DescribeApplications
-                  - elasticbeanstalk:UpdateApplicationResourceLifecycle
-                  - elasticbeanstalk:CreateEnvironment
-                  - elasticbeanstalk:UpdateEnvironment
-                  - elasticbeanstalk:TerminateEnvironment
-                  - elasticbeanstalk:DescribeEnvironmentHealth
-                  - elasticbeanstalk:DescribeEnvironmentResources
-                  - elasticbeanstalk:AddTags
-                  - elasticbeanstalk:RemoveTags
-                  - elasticbeanstalk:ListTagsForResource
-                Resource: "*"
-              # EB: describe actions (no resource-level support, restricted by condition)
-              - Effect: Allow
-                Action:
-                  - elasticbeanstalk:DescribeEnvironments
-                  - elasticbeanstalk:DescribeEvents
-                Resource: "*"
-                Condition:
-                  StringEquals:
-                    elasticbeanstalk:InApplication: !Sub arn:aws:elasticbeanstalk:${AWSRegion}:${AWS::AccountId}:application/${EBApplicationName}
-              # EB: global read-only actions that cannot be restricted further
-              - Effect: Allow
-                Action:
-                  - elasticbeanstalk:ListAvailableSolutionStacks
-                  - elasticbeanstalk:CheckDNSAvailability
-                Resource: "*"
-
-  # IAM Policy for CloudFormation (limited to this stack)
-  CloudFormationPolicy:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: !Sub ${RoleName}-CFNPolicy
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Action:
-              - cloudformation:CreateStack
-              - cloudformation:UpdateStack
-              - cloudformation:DescribeStacks
-              - cloudformation:DescribeStackResources
-              - cloudformation:GetTemplate
-              - cloudformation:ValidateTemplate
-              # Change set operations required by `aws cloudformation deploy`
-              - cloudformation:CreateChangeSet
-              - cloudformation:DescribeChangeSet
-              - cloudformation:ExecuteChangeSet
-              - cloudformation:DeleteChangeSet
-            Resource: !Sub arn:aws:cloudformation:${AWSRegion}:${AWS::AccountId}:stack/${StackName}/*
-          # Allow the GitHub Actions role to hand off the execution role to CloudFormation
-          - Effect: Allow
-            Action: iam:PassRole
-            Resource: !GetAtt CFNExecutionRole.Arn
-      Roles:
-        - !Ref GitHubDeployRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
 
 Outputs:
   GitHubRoleArn:
