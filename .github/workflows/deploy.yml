@@ -150,7 +150,8 @@ jobs:
 
           aws elasticbeanstalk update-environment \
             --environment-name "$EB_ENVIRONMENT_NAME" \
-            --version-label "${{ env.VERSION_LABEL }}"
+            --version-label "${{ env.VERSION_LABEL }}" \
+            --option-settings Namespace=aws:elasticbeanstalk:application:environment,OptionName=DEPLOY_VERSION,Value="${{ env.VERSION_LABEL }}"
 
       - name: Wait for deployment to complete
         run: |

@@ -169,6 +169,31 @@ app.get('/api/state', (req, res) => {
   res.json(votingState);
 });
 
+app.get('/status', (req, res) => {
+  res.json({ version: process.env.DEPLOY_VERSION || 'dev' });
+});
+
+// Reset all votes (POST /reset)
+app.post('/reset', (req, res) => {
+  votingState.behaviors.forEach(behavior => {
+    behavior.votes = { red: 0, amber: 0, green: 0 };
+    behavior.userVotes = {};
+  });
+  votingState.currentBehaviorId = 1;
+
+  // Broadcast updated state to all WebSocket clients
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify({
+        type: 'STATE_UPDATE',
+        data: votingState
+      }));
+    }
+  });
+
+  res.json({ success: true, message: 'All votes have been reset' });
+});
+
 // Serve static React files
 app.use(express.static(path.join(__dirname, '../client/build')));
 
