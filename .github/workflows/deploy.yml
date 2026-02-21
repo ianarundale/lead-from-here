@@ -1,16 +1,16 @@
-name: Deploy to AWS Serverless
+name: Deploy to AWS Serverless (SST)
 
 on:
   push:
     branches: ['main', 'serverless']
     paths:
       - 'client/**'
-      - 'server/**'
       - 'lambda/**'
       - 'scenarios.json'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/**'
+      - 'sst.config.ts'
       - 'infrastructure/**'
   workflow_dispatch:
 
@@ -31,15 +31,13 @@ jobs:
         with:
           ref: ${{ github.ref_name }}
 
-      - name: Set branch name for resource naming
+      - name: Set branch name for SST stage
         run: |
-          # Sanitize branch name for use in AWS resource names
           BRANCH_NAME=$(echo '${{ github.ref_name }}' \
             | tr '[:upper:]' '[:lower:]' \
             | sed 's|/|-|g' \
             | sed 's|[^a-z0-9-]|-|g')
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
-          echo "STACK_NAME=lead-from-here-$BRANCH_NAME" >> $GITHUB_ENV
           echo "ROLE_SESSION_NAME=github-oidc-${BRANCH_NAME:0:48}" >> $GITHUB_ENV
 
       - name: Setup Node.js
@@ -48,14 +46,14 @@ jobs:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: |
-            server/package-lock.json
+            package-lock.json
             client/package-lock.json
 
-      - name: Install server dependencies
-        run: cd server && npm install
+      - name: Install root dependencies
+        run: npm ci
 
       - name: Install client dependencies
-        run: cd client && npm install
+        run: cd client && npm ci
 
       - name: Lint React app
         working-directory: ./client
@@ -72,146 +70,17 @@ jobs:
           role-session-name: ${{ env.ROLE_SESSION_NAME }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Package Lambda function
-        run: |
-          cd lambda
-          npm install
-          zip -r lambda.zip index.js scenarios.json node_modules/
+      - name: Install SST providers
+        run: npx sst install
 
-      - name: Deploy CloudFormation stack
-        run: |
-          set -euo pipefail
-
-          STACK_STATUS=$(aws cloudformation describe-stacks \
-            --stack-name ${{ env.STACK_NAME }} \
-            --region ${{ env.AWS_REGION }} \
-            --query 'Stacks[0].StackStatus' \
-            --output text 2>/dev/null || echo "DOES_NOT_EXIST")
-
-          if [[ "$STACK_STATUS" == "REVIEW_IN_PROGRESS" || "$STACK_STATUS" == "ROLLBACK_COMPLETE" || "$STACK_STATUS" == "CREATE_FAILED" ]]; then
-            echo "Stack is in $STACK_STATUS — deleting before redeploy"
-            aws cloudformation delete-stack \
-              --stack-name ${{ env.STACK_NAME }} \
-              --region ${{ env.AWS_REGION }}
-            aws cloudformation wait stack-delete-complete \
-              --stack-name ${{ env.STACK_NAME }} \
-              --region ${{ env.AWS_REGION }}
-          fi
-
-          aws cloudformation deploy \
-            --template-file infrastructure/serverless.yml \
-            --stack-name ${{ env.STACK_NAME }} \
-            --capabilities CAPABILITY_NAMED_IAM \
-            --region ${{ env.AWS_REGION }} \
-            --role-arn ${{ secrets.AWS_CFN_EXECUTION_ROLE_ARN }} \
-            --parameter-overrides \
-              BranchName=${{ env.BRANCH_NAME }} \
-              Environment=production \
-            --tags \
-              Key=Project,Value=lead-from-here \
-            --no-fail-on-empty-changeset
-
-      - name: Get CloudFormation outputs
-        id: cfn-outputs
-        run: |
-          set -euo pipefail
-
-          WEBSOCKET_URL=$(aws cloudformation describe-stacks \
-            --stack-name ${{ env.STACK_NAME }} \
-            --region ${{ env.AWS_REGION }} \
-            --query "Stacks[0].Outputs[?OutputKey=='WebSocketUrl'].OutputValue" \
-            --output text)
-
-          FRONTEND_DOMAIN=$(aws cloudformation describe-stacks \
-            --stack-name ${{ env.STACK_NAME }} \
-            --region ${{ env.AWS_REGION }} \
-            --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDomain'].OutputValue" \
-            --output text)
-
-          FRONTEND_BUCKET_NAME=$(aws cloudformation describe-stacks \
-            --stack-name ${{ env.STACK_NAME }} \
-            --region ${{ env.AWS_REGION }} \
-            --query "Stacks[0].Outputs[?OutputKey=='FrontendBucketName'].OutputValue" \
-            --output text)
-
-          LAMBDA_BUCKET=$(aws cloudformation describe-stacks \
-            --stack-name ${{ env.STACK_NAME }} \
-            --region ${{ env.AWS_REGION }} \
-            --query "Stacks[0].Outputs[?OutputKey=='LambdaCodeBucketName'].OutputValue" \
-            --output text)
-
-          for value in "$WEBSOCKET_URL" "$FRONTEND_DOMAIN" "$FRONTEND_BUCKET_NAME" "$LAMBDA_BUCKET"; do
-            if [[ -z "$value" || "$value" == "None" ]]; then
-              echo "Required CloudFormation output missing. Stack status:"
-              aws cloudformation describe-stacks \
-                --stack-name ${{ env.STACK_NAME }} \
-                --region ${{ env.AWS_REGION }} \
-                --query "Stacks[0].{Status:StackStatus,Reason:StackStatusReason}" \
-                --output table
-              exit 1
-            fi
-          done
-
-          echo "WebSocket URL: $WEBSOCKET_URL"
-          echo "Frontend URL: https://$FRONTEND_DOMAIN"
-          echo "Frontend bucket: $FRONTEND_BUCKET_NAME"
-          echo "Lambda Bucket: $LAMBDA_BUCKET"
-
-          echo "WEBSOCKET_URL=$WEBSOCKET_URL" >> $GITHUB_ENV
-          echo "FRONTEND_DOMAIN=$FRONTEND_DOMAIN" >> $GITHUB_ENV
-          echo "FRONTEND_BUCKET_NAME=$FRONTEND_BUCKET_NAME" >> $GITHUB_ENV
-          echo "LAMBDA_BUCKET=$LAMBDA_BUCKET" >> $GITHUB_ENV
-
-      - name: Upload Lambda code to S3
-        run: |
-          aws s3 cp lambda/lambda.zip s3://${{ env.LAMBDA_BUCKET }}/lambda/${{ env.BRANCH_NAME }}/lambda-${{ github.sha }}.zip
-
-      - name: Update Lambda functions with new code
-        run: |
-          aws lambda update-function-code \
-            --function-name ${{ env.BRANCH_NAME }}-lead-from-here-websocket \
-            --s3-bucket ${{ env.LAMBDA_BUCKET }} \
-            --s3-key lambda/${{ env.BRANCH_NAME }}/lambda-${{ github.sha }}.zip \
-            --region ${{ env.AWS_REGION }}
-
-          aws lambda update-function-code \
-            --function-name ${{ env.BRANCH_NAME }}-lead-from-here-rest-api \
-            --s3-bucket ${{ env.LAMBDA_BUCKET }} \
-            --s3-key lambda/${{ env.BRANCH_NAME }}/lambda-${{ github.sha }}.zip \
-            --region ${{ env.AWS_REGION }}
-
-      - name: Build React app with serverless URLs
-        working-directory: ./client
-        env:
-          REACT_APP_WS_URL: ${{ env.WEBSOCKET_URL }}
-        run: npm run build
-
-      - name: Upload frontend to S3
-        run: |
-          aws s3 sync client/build/ s3://${{ env.FRONTEND_BUCKET_NAME }}/ \
-            --delete \
-            --cache-control "max-age=0,no-cache,no-store,must-revalidate"
-
-      - name: Invalidate CloudFront cache
-        run: |
-          DISTRIBUTION_ID=$(aws cloudformation describe-stacks \
-            --stack-name ${{ env.STACK_NAME }} \
-            --region ${{ env.AWS_REGION }} \
-            --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" \
-            --output text)
-
-          if [ -n "$DISTRIBUTION_ID" ] && [ "$DISTRIBUTION_ID" != "None" ]; then
-            aws cloudfront create-invalidation \
-              --distribution-id "$DISTRIBUTION_ID" \
-              --paths "/*"
-          fi
+      - name: Deploy with SST
+        run: npx sst deploy --stage ${{ env.BRANCH_NAME }}
 
       - name: Display deployment info
         run: |
           echo "=========================================="
-          echo "Deployment complete!"
+          echo "SST deployment complete"
           echo "=========================================="
           echo "Branch: ${{ github.ref_name }}"
-          echo "Stack: ${{ env.STACK_NAME }}"
-          echo "WebSocket: ${{ env.WEBSOCKET_URL }}"
-          echo "Frontend: https://${{ env.FRONTEND_DOMAIN }}"
+          echo "Stage: ${{ env.BRANCH_NAME }}"
+          echo "See 'Deploy with SST' step output for URLs"

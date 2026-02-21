@@ -1,11 +1,10 @@
-# AWS Deployment — Lead From Here (Serverless)
+# AWS Deployment — Lead From Here (SST)
 
-For full details see `infrastructure/README.md`.
+For full infrastructure details see `infrastructure/README.md`.
 
 ## Required GitHub Secrets
 
 - `AWS_ROLE_ARN` (`GitHubRoleArn` output from `lead-from-here-oidc`)
-- `AWS_CFN_EXECUTION_ROLE_ARN` (`CFNExecutionRoleArn` output from `lead-from-here-oidc`)
 
 ## Branches That Deploy
 
@@ -13,11 +12,11 @@ Workflow `.github/workflows/deploy.yml` deploys on push to:
 - `main`
 - `serverless`
 
-OIDC trust policy currently allows both branch refs.
+SST uses a stage derived from branch name.
 
 ## First-Time Bootstrap
 
-Deploy OIDC stack once:
+Deploy OIDC stack once (existing stack can be updated in-place):
 
 ```bash
 aws cloudformation deploy \
@@ -36,27 +35,33 @@ aws cloudformation deploy \
     EBEnvironmentName=lead-from-here-prod
 ```
 
-Then set the two required secrets above.
+## What Deploys
 
-## What a Deploy Does
+`sst.config.ts` provisions:
+- DynamoDB tables (`ConnectionsTable`, `VotingStateTable`)
+- Lambda handlers (`lambda/index.handler`, `lambda/index.restHandler`)
+- API Gateway WebSocket API
+- API Gateway HTTP API (`GET /reset`, `GET /status`)
+- Static frontend site (CloudFront + S3)
 
-1. Lints/tests client
-2. Deploys `infrastructure/serverless.yml`
-3. Uploads Lambda artifact to stack output bucket
-4. Updates Lambda function code
-5. Builds and uploads frontend to stack output bucket
-6. Invalidates CloudFront
+## Local Preflight
+
+```bash
+npx sst install
+npx sst diff --stage serverless
+```
 
 ## Troubleshooting
 
 ```bash
-aws cloudformation describe-stacks \
-  --stack-name lead-from-here-serverless \
-  --region eu-west-1 \
-  --query 'Stacks[0].{Status:StackStatus,Outputs:Outputs}'
+# Inspect CloudFormation stacks created by SST
+aws cloudformation describe-stacks --region eu-west-1 \
+  --query "Stacks[?contains(StackName, 'lead-from-here')].[StackName,StackStatus]" \
+  --output table
 
+# Check recent events for a failed stack (replace stack name)
 aws cloudformation describe-stack-events \
-  --stack-name lead-from-here-serverless \
+  --stack-name <stack-name> \
   --region eu-west-1 \
   --max-items 30
 ```

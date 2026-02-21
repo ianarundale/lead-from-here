@@ -6,9 +6,6 @@ server/node_modules/
 # Build output
 client/build/
 
-# Lockfiles
-/package-lock.json
-
 # Environment
 .env
 .env.local
@@ -33,3 +30,7 @@ Thumbs.db
 # Workshop materials
 *.pptx
 "scenarios copy.json"
+
+.sst/
+sst-env.d.ts
+**/sst-env.d.ts

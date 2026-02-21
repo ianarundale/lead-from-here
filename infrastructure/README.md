@@ -1,30 +1,26 @@
 # Infrastructure
 
-This folder contains Infrastructure as Code for the serverless deployment of Lead From Here.
+This project now deploys serverless infrastructure with SST.
+
+## Source of Truth
+
+- SST app config: `sst.config.ts`
+- OIDC bootstrap stack: `infrastructure/github-oidc.yml`
 
 ## Architecture
 
-GitHub Actions deploys a branch-scoped CloudFormation stack that provisions:
-- API Gateway WebSocket API
-- API Gateway HTTP API (`/reset`, `/status`)
-- 2 Lambda functions (WebSocket + REST handlers)
-- 2 DynamoDB tables (connections + voting state)
-- S3 bucket for frontend static assets
-- CloudFront distribution in front of S3
-- S3 bucket for Lambda deployment zip objects
+SST provisions, per stage:
+- `Dynamo` connections table (TTL on `expiresAt`)
+- `Dynamo` voting state table
+- WebSocket API Gateway routes: `$connect`, `$disconnect`, `$default`
+- HTTP API Gateway routes: `GET /reset`, `GET /status`
+- Lambda WebSocket handler: `lambda/index.handler`
+- Lambda REST handler: `lambda/index.restHandler`
+- Static site deployment for `client/` with CloudFront URL output
 
-## Stacks
+## Bootstrap (one-time)
 
-- `infrastructure/github-oidc.yml` (bootstrap stack, deployed manually)
-- `infrastructure/serverless.yml` (application stack, deployed by GitHub Actions)
-
-### Why two stacks?
-
-`github-oidc.yml` must exist before GitHub Actions can authenticate with AWS via OIDC. Once that exists, Actions can deploy `serverless.yml` on each push.
-
-## One-Time Setup
-
-### 1. Deploy OIDC stack
+Deploy OIDC role stack once:
 
 ```bash
 aws cloudformation deploy \
@@ -43,101 +39,32 @@ aws cloudformation deploy \
     EBEnvironmentName=lead-from-here-prod
 ```
 
-Note: `S3BucketName` / `EB*` parameters remain in this template for backward compatibility with the existing stack shape.
-
-### 2. Capture role ARNs
-
-```bash
-aws cloudformation describe-stacks \
-  --stack-name lead-from-here-oidc \
-  --region eu-west-1 \
-  --query 'Stacks[0].Outputs'
-```
-
-### 3. Configure GitHub secrets
-
-Required repository secrets:
-- `AWS_ROLE_ARN`
-- `AWS_CFN_EXECUTION_ROLE_ARN`
-
-## Deployment Behavior
+## GitHub Actions Deployment
 
 Workflow: `.github/workflows/deploy.yml`
 
-Triggers:
-- Push to `main`
-- Push to `serverless`
-- Manual dispatch
+On push to `main` or `serverless`, it:
+1. Installs root + client dependencies
+2. Lints/tests React app
+3. Assumes AWS role via OIDC
+4. Runs `npx sst install`
+5. Runs `npx sst deploy --stage <sanitized-branch-name>`
 
-Deployment sequence:
-1. Lint/test React app
-2. Assume AWS role via OIDC
-3. Deploy/update CloudFormation stack from `infrastructure/serverless.yml`
-4. Package/upload Lambda zip to stack-managed code bucket
-5. Update Lambda function code
-6. Build React app with `REACT_APP_WS_URL` from stack output
-7. Upload frontend build to stack-managed frontend bucket
-8. Invalidate CloudFront cache
-
-## Stack Naming
-
-Workflow sanitizes branch names and creates:
-- Stack name: `lead-from-here-<branch>`
-- Lambda names and most resources prefixed with `<branch>`
-
-Example for `serverless` branch:
-- Stack: `lead-from-here-serverless`
-
-## Validate Before Push
+## Local Commands
 
 ```bash
-aws cloudformation validate-template \
-  --template-body file://infrastructure/serverless.yml \
-  --region eu-west-1
+# Install providers and diff changes
+npx sst install
+npx sst diff --stage serverless
+
+# Deploy manually to a stage
+npx sst deploy --stage serverless
+
+# Remove a stage
+npx sst remove --stage serverless
 ```
 
-## Useful Commands
+## Notes
 
-### Inspect application stack outputs
-
-```bash
-aws cloudformation describe-stacks \
-  --stack-name lead-from-here-serverless \
-  --region eu-west-1 \
-  --query 'Stacks[0].Outputs'
-```
-
-### Check recent stack events
-
-```bash
-aws cloudformation describe-stack-events \
-  --stack-name lead-from-here-serverless \
-  --region eu-west-1 \
-  --max-items 20
-```
-
-### Check Lambda logs (example)
-
-```bash
-aws logs tail /aws/lambda/serverless-lead-from-here-websocket \
-  --region eu-west-1 \
-  --follow
-```
-
-## Teardown
-
-Delete an application stack:
-
-```bash
-aws cloudformation delete-stack \
-  --stack-name lead-from-here-serverless \
-  --region eu-west-1
-```
-
-Delete bootstrap stack (only when no longer needed):
-
-```bash
-aws cloudformation delete-stack \
-  --stack-name lead-from-here-oidc \
-  --region eu-west-1
-```
+- Stage names are derived from branch names and sanitized to lowercase alphanumerics and dashes.
+- Existing `infrastructure/serverless.yml` is legacy and no longer used by the GitHub deploy workflow.
