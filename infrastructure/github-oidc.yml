@@ -82,6 +82,17 @@ Resources:
               - cloudformation:*
               - iam:PassRole
               - iam:CreateServiceLinkedRole
+              - autoscaling:DescribeAutoScalingGroups
+              - autoscaling:DescribeLaunchConfigurations
+              - autoscaling:DescribeScalingActivities
+              - ec2:DescribeImages
+              - ec2:DescribeInstances
+              - ec2:DescribeVpcs
+              - ec2:DescribeSubnets
+              - ec2:DescribeSecurityGroups
+              - ec2:DescribeKeyPairs
+              - elasticloadbalancing:DescribeLoadBalancers
+              - elasticloadbalancing:DescribeTargetGroups
             Resource: "*"
       Roles:
         - !Ref GitHubDeployRole
