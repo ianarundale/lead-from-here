@@ -6,8 +6,8 @@ server/node_modules/
 # Build output
 client/build/
 
-# Lockfiles
-package-lock.json
+# Lockfiles (root only — server/ and client/ lock files are committed for CI caching)
+/package-lock.json
 
 # Environment
 .env
