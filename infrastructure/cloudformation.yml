@@ -125,7 +125,7 @@ Resources:
         - Namespace: aws:elasticbeanstalk:application
           OptionName: Application Healthcheck URL
           Value: /api/state
-        - Namespace: aws:elasticbeanstalk:environment
+        - Namespace: aws:elasticbeanstalk:healthreporting:system
           OptionName: HealthCheckSuccessThreshold
           Value: Ok
 
