@@ -97,10 +97,6 @@ Resources:
       ApplicationName: !Ref EBApplication
       SolutionStackName: !Ref PlatformVersion
       OptionSettings:
-        # Node.js settings
-        - Namespace: aws:elasticbeanstalk:container:nodejs
-          OptionName: NodeVersion
-          Value: "20"
         # Environment variables
         - Namespace: aws:elasticbeanstalk:application:environment
           OptionName: NODE_ENV
