@@ -1,0 +1,9 @@
+{
+  "name": "lead-from-here-lambda",
+  "version": "1.0.0",
+  "description": "Lambda handler for Lead From Here serverless backend",
+  "main": "index.js",
+  "dependencies": {
+    "aws-sdk": "^2.1650.0"
+  }
+}

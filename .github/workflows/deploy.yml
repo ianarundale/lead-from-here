@@ -1,14 +1,12 @@
-name: Deploy to AWS Elastic Beanstalk
+name: Deploy to AWS Serverless
 
 on:
   push:
-    branches: [main]
+    branches: ['main', 'serverless']
     paths:
       - 'client/**'
       - 'server/**'
-      - 'Procfile'
-      - '.ebextensions/**'
-      - '.platform/**'
+      - 'lambda/**'
       - 'scenarios.json'
       - 'package.json'
       - 'package-lock.json'
@@ -18,26 +16,31 @@ on:
 
 env:
   AWS_REGION: eu-west-1
-  EB_APPLICATION_NAME: lead-from-here
-  EB_ENVIRONMENT_NAME: lead-from-here-prod
-  S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-
-# Prevent concurrent deployments to the same environment
-concurrency:
-  group: deploy-production
-  cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
-      id-token: write  # Required for OIDC token request
+      id-token: write
       contents: read
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Set branch name for resource naming
+        run: |
+          # Sanitize branch name for use in AWS resource names
+          BRANCH_NAME=$(echo '${{ github.ref_name }}' \
+            | tr '[:upper:]' '[:lower:]' \
+            | sed 's|/|-|g' \
+            | sed 's|[^a-z0-9-]|-|g')
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+          echo "STACK_NAME=lead-from-here-$BRANCH_NAME" >> $GITHUB_ENV
+          echo "ROLE_SESSION_NAME=github-oidc-${BRANCH_NAME:0:48}" >> $GITHUB_ENV
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -48,10 +51,11 @@ jobs:
             server/package-lock.json
             client/package-lock.json
 
-      - name: Install dependencies
-        run: |
-          cd server && npm install
-          cd ../client && npm install
+      - name: Install server dependencies
+        run: cd server && npm install
+
+      - name: Install client dependencies
+        run: cd client && npm install
 
       - name: Lint React app
         working-directory: ./client
@@ -61,60 +65,53 @@ jobs:
         working-directory: ./client
         run: CI=true npm test -- --passWithNoTests
 
-      - name: Build React app
-        working-directory: ./client
-        env:
-          REACT_APP_BACKEND_URL: ${{ secrets.AWS_EB_URL }}
-        run: npm run build
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          role-session-name: GitHub-OIDC-Deployment
+          role-session-name: ${{ env.ROLE_SESSION_NAME }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Ensure EB service-linked role exists
+      - name: Package Lambda function
         run: |
-          # EB requires its service-linked role to exist before CloudFormation
-          # can create an EB application. Create it if this is the first time
-          # EB has been used in this account. The error if it already exists is safe to ignore.
-          aws iam create-service-linked-role \
-            --aws-service-name elasticbeanstalk.amazonaws.com 2>&1 \
-            | grep -v "already exists" || true
+          cd lambda
+          npm install
+          zip -r lambda.zip index.js scenarios.json node_modules/
 
-      - name: Delete stack if in failed state
-        run: |
-          STATUS=$(aws cloudformation describe-stacks \
-            --stack-name lead-from-here-prod \
-            --region $AWS_REGION \
-            --query 'Stacks[0].StackStatus' \
-            --output text 2>/dev/null || echo "DOES_NOT_EXIST")
-          echo "Stack status: $STATUS"
-          if [[ "$STATUS" == "ROLLBACK_COMPLETE" || "$STATUS" == "CREATE_FAILED" ]]; then
-            echo "Stack is in $STATUS — deleting before redeploy"
-            aws cloudformation delete-stack \
-              --stack-name lead-from-here-prod \
-              --region $AWS_REGION
-            aws cloudformation wait stack-delete-complete \
-              --stack-name lead-from-here-prod \
-              --region $AWS_REGION
-            echo "Stack deleted."
-          fi
-
-      - name: Deploy CloudFormation infrastructure
+      - name: Deploy CloudFormation stack
         run: |
           set +e
+
+          # Check if stack exists
+          STACK_EXISTS=$(aws cloudformation describe-stacks \
+            --stack-name ${{ env.STACK_NAME }} \
+            --region ${{ env.AWS_REGION }} \
+            --query 'Stacks[0].StackStatus' \
+            --output text 2>/dev/null || echo "DOES_NOT_EXIST")
+
+          if [[ "$STACK_EXISTS" == "ROLLBACK_COMPLETE" || "$STACK_EXISTS" == "CREATE_FAILED" ]]; then
+            echo "Stack is in $STACK_EXISTS — deleting before redeploy"
+            aws cloudformation delete-stack \
+              --stack-name ${{ env.STACK_NAME }} \
+              --region ${{ env.AWS_REGION }}
+            aws cloudformation wait stack-delete-complete \
+              --stack-name ${{ env.STACK_NAME }} \
+              --region ${{ env.AWS_REGION }}
+          fi
+
+          # Deploy or update stack
           aws cloudformation deploy \
-            --template-file infrastructure/cloudformation.yml \
-            --stack-name lead-from-here-prod \
+            --template-file infrastructure/serverless.yml \
+            --stack-name ${{ env.STACK_NAME }} \
             --capabilities CAPABILITY_NAMED_IAM \
-            --region $AWS_REGION \
+            --region ${{ env.AWS_REGION }} \
             --role-arn ${{ secrets.AWS_CFN_EXECUTION_ROLE_ARN }} \
             --parameter-overrides \
-              DeploymentBucketName=$S3_BUCKET \
-              EBApplicationName=$EB_APPLICATION_NAME \
-              EBEnvironmentName=$EB_ENVIRONMENT_NAME
+              BranchName=${{ env.BRANCH_NAME }} \
+              Environment=production \
+            --tags \
+              Key=Project,Value=lead-from-here
+
           CFN_EXIT=$?
           set -e
           # Exit code 255 = "No changes to deploy" — treat as success
@@ -123,56 +120,93 @@ jobs:
             exit $CFN_EXIT
           fi
 
-      - name: Generate deployment package
+      - name: Get CloudFormation outputs
+        id: cfn-outputs
         run: |
-          VERSION_LABEL="deploy-$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA:0:7}"
-          echo "VERSION_LABEL=$VERSION_LABEL" >> $GITHUB_ENV
-
-          # client/build/ is included at the root of the zip so the server's
-          # path.join(__dirname, '../client/build') resolves correctly on EB
-          zip -r deploy.zip \
-            server/ \
-            client/build/ \
-            Procfile \
-            .ebextensions/ \
-            .platform/ \
-            scenarios.json
-
-      - name: Upload to S3
-        run: aws s3 cp deploy.zip s3://$S3_BUCKET/deploys/${{ env.VERSION_LABEL }}.zip
-
-      - name: Deploy to Elastic Beanstalk
-        run: |
-          aws elasticbeanstalk create-application-version \
-            --application-name "$EB_APPLICATION_NAME" \
-            --version-label "${{ env.VERSION_LABEL }}" \
-            --source-bundle S3Bucket="$S3_BUCKET",S3Key="deploys/${{ env.VERSION_LABEL }}.zip"
-
-          aws elasticbeanstalk update-environment \
-            --environment-name "$EB_ENVIRONMENT_NAME" \
-            --version-label "${{ env.VERSION_LABEL }}" \
-            --option-settings Namespace=aws:elasticbeanstalk:application:environment,OptionName=DEPLOY_VERSION,Value="${{ env.VERSION_LABEL }}"
-
-      - name: Wait for deployment to complete
-        run: |
-          aws elasticbeanstalk wait environment-updated \
-            --environment-name "$EB_ENVIRONMENT_NAME"
-
-      - name: Verify environment health
-        run: |
-          STATUS=$(aws elasticbeanstalk describe-environments \
-            --environment-names "$EB_ENVIRONMENT_NAME" \
-            --query 'Environments[0].Status' \
-            --output text)
-          HEALTH=$(aws elasticbeanstalk describe-environments \
-            --environment-names "$EB_ENVIRONMENT_NAME" \
-            --query 'Environments[0].Health' \
+          WEBSOCKET_URL=$(aws cloudformation describe-stacks \
+            --stack-name ${{ env.STACK_NAME }} \
+            --region ${{ env.AWS_REGION }} \
+            --query "Stacks[0].Outputs[?OutputKey=='WebSocketUrl'].OutputValue" \
             --output text)
 
-          echo "Elastic Beanstalk status: $STATUS"
-          echo "Elastic Beanstalk health: $HEALTH"
+          FRONTEND_DOMAIN=$(aws cloudformation describe-stacks \
+            --stack-name ${{ env.STACK_NAME }} \
+            --region ${{ env.AWS_REGION }} \
+            --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDomain'].OutputValue" \
+            --output text)
 
-          if [ "$STATUS" != "Ready" ] || [ "$HEALTH" != "Green" ]; then
-            echo "Deployment completed but environment is not healthy."
-            exit 1
+          FRONTEND_BUCKET_NAME=$(aws cloudformation describe-stacks \
+            --stack-name ${{ env.STACK_NAME }} \
+            --region ${{ env.AWS_REGION }} \
+            --query "Stacks[0].Outputs[?OutputKey=='FrontendBucketName'].OutputValue" \
+            --output text)
+
+          LAMBDA_BUCKET=$(aws cloudformation describe-stacks \
+            --stack-name ${{ env.STACK_NAME }} \
+            --region ${{ env.AWS_REGION }} \
+            --query "Stacks[0].Outputs[?OutputKey=='LambdaCodeBucketName'].OutputValue" \
+            --output text)
+
+          echo "WebSocket URL: $WEBSOCKET_URL"
+          echo "Frontend URL: https://$FRONTEND_DOMAIN"
+          echo "Frontend bucket: $FRONTEND_BUCKET_NAME"
+          echo "Lambda Bucket: $LAMBDA_BUCKET"
+
+          echo "WEBSOCKET_URL=$WEBSOCKET_URL" >> $GITHUB_ENV
+          echo "FRONTEND_DOMAIN=$FRONTEND_DOMAIN" >> $GITHUB_ENV
+          echo "FRONTEND_BUCKET_NAME=$FRONTEND_BUCKET_NAME" >> $GITHUB_ENV
+          echo "LAMBDA_BUCKET=$LAMBDA_BUCKET" >> $GITHUB_ENV
+
+      - name: Upload Lambda code to S3
+        run: |
+          aws s3 cp lambda/lambda.zip s3://${{ env.LAMBDA_BUCKET }}/lambda/${{ env.BRANCH_NAME }}/lambda-${{ github.sha }}.zip
+
+      - name: Update Lambda functions with new code
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ env.BRANCH_NAME }}-lead-from-here-websocket \
+            --s3-bucket ${{ env.LAMBDA_BUCKET }} \
+            --s3-key lambda/${{ env.BRANCH_NAME }}/lambda-${{ github.sha }}.zip \
+            --region ${{ env.AWS_REGION }}
+
+          aws lambda update-function-code \
+            --function-name ${{ env.BRANCH_NAME }}-lead-from-here-rest-api \
+            --s3-bucket ${{ env.LAMBDA_BUCKET }} \
+            --s3-key lambda/${{ env.BRANCH_NAME }}/lambda-${{ github.sha }}.zip \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Build React app with serverless URLs
+        working-directory: ./client
+        env:
+          REACT_APP_WS_URL: ${{ env.WEBSOCKET_URL }}
+        run: npm run build
+
+      - name: Upload frontend to S3
+        run: |
+          aws s3 sync client/build/ s3://${{ env.FRONTEND_BUCKET_NAME }}/ \
+            --delete \
+            --cache-control "max-age=0,no-cache,no-store,must-revalidate"
+
+      - name: Invalidate CloudFront cache
+        run: |
+          DISTRIBUTION_ID=$(aws cloudformation describe-stacks \
+            --stack-name ${{ env.STACK_NAME }} \
+            --region ${{ env.AWS_REGION }} \
+            --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" \
+            --output text)
+
+          if [ -n "$DISTRIBUTION_ID" ] && [ "$DISTRIBUTION_ID" != "None" ]; then
+            aws cloudfront create-invalidation \
+              --distribution-id "$DISTRIBUTION_ID" \
+              --paths "/*"
           fi
+
+      - name: Display deployment info
+        run: |
+          echo "=========================================="
+          echo "Deployment complete!"
+          echo "=========================================="
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Stack: ${{ env.STACK_NAME }}"
+          echo "WebSocket: ${{ env.WEBSOCKET_URL }}"
+          echo "Frontend: https://${{ env.FRONTEND_DOMAIN }}"

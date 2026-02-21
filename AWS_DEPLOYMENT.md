@@ -1,19 +1,23 @@
-# AWS Deployment — Lead From Here
+# AWS Deployment — Lead From Here (Serverless)
 
-For full infrastructure documentation see [infrastructure/README.md](infrastructure/README.md).
+For full details see `infrastructure/README.md`.
 
-## Quick Reference
+## Required GitHub Secrets
 
-### GitHub Secrets Required
+- `AWS_ROLE_ARN` (`GitHubRoleArn` output from `lead-from-here-oidc`)
+- `AWS_CFN_EXECUTION_ROLE_ARN` (`CFNExecutionRoleArn` output from `lead-from-here-oidc`)
 
-| Secret | Where to get it |
-|--------|-----------------|
-| `AWS_ROLE_ARN` | `GitHubRoleArn` output of `lead-from-here-oidc` CFN stack |
-| `AWS_CFN_EXECUTION_ROLE_ARN` | `CFNExecutionRoleArn` output of `lead-from-here-oidc` CFN stack |
-| `AWS_S3_BUCKET` | The bucket name chosen during OIDC stack deployment |
-| `AWS_EB_URL` | EB endpoint URL — add after first successful deployment |
+## Branches That Deploy
 
-### First-Time Setup (one-time)
+Workflow `.github/workflows/deploy.yml` deploys on push to:
+- `main`
+- `serverless`
+
+OIDC trust policy currently allows both branch refs.
+
+## First-Time Bootstrap
+
+Deploy OIDC stack once:
 
 ```bash
 aws cloudformation deploy \
@@ -27,50 +31,32 @@ aws cloudformation deploy \
     RoleName=github-actions-lead-from-here \
     StackName=lead-from-here-prod \
     AWSRegion=eu-west-1 \
-    S3BucketName=<globally-unique-bucket-name> \
+    S3BucketName=<placeholder-or-existing-bucket-name> \
     EBApplicationName=lead-from-here \
     EBEnvironmentName=lead-from-here-prod
 ```
 
-Then add the four secrets above and push to `main`.
+Then set the two required secrets above.
 
-### Ongoing Deployments
+## What a Deploy Does
 
-Every push to `main` automatically:
-1. Lints and tests the React app
-2. Builds the React app with the backend URL baked in
-3. Deploys/updates CloudFormation infrastructure (via `CFNExecutionRole`)
-4. Uploads the deployment package to S3 with a versioned key
-5. Creates a new EB application version and updates the environment
-6. Waits for the environment to report healthy
+1. Lints/tests client
+2. Deploys `infrastructure/serverless.yml`
+3. Uploads Lambda artifact to stack output bucket
+4. Updates Lambda function code
+5. Builds and uploads frontend to stack output bucket
+6. Invalidates CloudFront
 
-Or trigger manually: **GitHub → Actions → Deploy to AWS → Run workflow**
-
-### Troubleshooting
+## Troubleshooting
 
 ```bash
-# Check environment health
-aws elasticbeanstalk describe-environments \
-  --environment-names lead-from-here-prod \
+aws cloudformation describe-stacks \
+  --stack-name lead-from-here-serverless \
   --region eu-west-1 \
-  --query 'Environments[0].{Status:Status,Health:Health}'
+  --query 'Stacks[0].{Status:StackStatus,Outputs:Outputs}'
 
-# Stream logs
-aws elasticbeanstalk request-environment-info \
-  --environment-name lead-from-here-prod \
-  --info-type tail --region eu-west-1
-
-aws elasticbeanstalk retrieve-environment-info \
-  --environment-name lead-from-here-prod \
-  --info-type tail --region eu-west-1
+aws cloudformation describe-stack-events \
+  --stack-name lead-from-here-serverless \
+  --region eu-west-1 \
+  --max-items 30
 ```
-
-### Key Files
-
-| File | Purpose |
-|------|---------|
-| `infrastructure/github-oidc.yml` | OIDC provider, GitHub Actions role, CFN execution role |
-| `infrastructure/cloudformation.yml` | S3 bucket, EB application, environment, IAM instance profile |
-| `.github/workflows/deploy.yml` | CI/CD pipeline |
-| `.ebextensions/nodejs.config` | EB proxy configuration |
-| `.platform/nginx/nginx.conf` | nginx config with WebSocket proxy support |

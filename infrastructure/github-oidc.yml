@@ -61,10 +61,11 @@ Resources:
               Federated: !GetAtt GitHubOIDCProvider.Arn
             Action: sts:AssumeRoleWithWebIdentity
             Condition:
-              # StringEquals (not StringLike) restricts to main branch only —
-              # feature branches and PRs cannot assume this role.
+              # Restrict to explicitly allowed branches only.
               StringEquals:
-                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOwner}/${GitHubRepo}:ref:refs/heads/main
+                token.actions.githubusercontent.com:sub:
+                  - !Sub repo:${GitHubOwner}/${GitHubRepo}:ref:refs/heads/main
+                  - !Sub repo:${GitHubOwner}/${GitHubRepo}:ref:refs/heads/serverless
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
 
   # Broad permissions for GitHub Actions role — scope these down once deployment is working
