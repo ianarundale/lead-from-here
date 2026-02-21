@@ -227,25 +227,26 @@ Resources:
                   - s3:PutBucketPublicAccessBlock
                 Resource:
                   - !Sub arn:aws:s3:::${S3BucketName}
-              # EB: manage the application scoped to this project
+              # EB: manage the application and environment
+              # Resource: "*" required — CloudFormation also calls TagResource,
+              # UpdateApplicationResourceLifecycle, and configuration-template
+              # actions where resource-level scoping is not supported
               - Effect: Allow
                 Action:
                   - elasticbeanstalk:CreateApplication
                   - elasticbeanstalk:UpdateApplication
                   - elasticbeanstalk:DeleteApplication
                   - elasticbeanstalk:DescribeApplications
-                Resource:
-                  - !Sub arn:aws:elasticbeanstalk:${AWSRegion}:${AWS::AccountId}:application/${EBApplicationName}
-              # EB: manage the environment
-              - Effect: Allow
-                Action:
+                  - elasticbeanstalk:UpdateApplicationResourceLifecycle
                   - elasticbeanstalk:CreateEnvironment
                   - elasticbeanstalk:UpdateEnvironment
                   - elasticbeanstalk:TerminateEnvironment
                   - elasticbeanstalk:DescribeEnvironmentHealth
                   - elasticbeanstalk:DescribeEnvironmentResources
-                Resource:
-                  - !Sub arn:aws:elasticbeanstalk:${AWSRegion}:${AWS::AccountId}:environment/${EBApplicationName}/${EBEnvironmentName}
+                  - elasticbeanstalk:AddTags
+                  - elasticbeanstalk:RemoveTags
+                  - elasticbeanstalk:ListTagsForResource
+                Resource: "*"
               # EB: describe actions (no resource-level support, restricted by condition)
               - Effect: Allow
                 Action:
