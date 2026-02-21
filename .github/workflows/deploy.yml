@@ -50,10 +50,10 @@ jobs:
             client/package-lock.json
 
       - name: Install root dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Install client dependencies
-        run: cd client && npm ci
+        run: cd client && npm install --no-audit --no-fund
 
       - name: Lint React app
         working-directory: ./client
