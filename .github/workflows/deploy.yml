@@ -1,0 +1,144 @@
+name: Deploy to AWS Elastic Beanstalk
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'client/**'
+      - 'server/**'
+      - 'Procfile'
+      - '.ebextensions/**'
+      - '.platform/**'
+      - 'scenarios.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/**'
+      - 'infrastructure/**'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: eu-west-1
+  EB_APPLICATION_NAME: lead-from-here
+  EB_ENVIRONMENT_NAME: lead-from-here-prod
+  S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+
+# Prevent concurrent deployments to the same environment
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      id-token: write  # Required for OIDC token request
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+            client/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd server && npm ci
+          cd ../client && npm ci
+
+      - name: Lint React app
+        working-directory: ./client
+        run: npm run lint
+
+      - name: Test React app
+        working-directory: ./client
+        run: CI=true npm test -- --passWithNoTests
+
+      - name: Build React app
+        working-directory: ./client
+        env:
+          REACT_APP_BACKEND_URL: ${{ secrets.AWS_EB_URL }}
+        run: npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHub-OIDC-Deployment
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy CloudFormation infrastructure
+        run: |
+          aws cloudformation deploy \
+            --template-file infrastructure/cloudformation.yml \
+            --stack-name lead-from-here-prod \
+            --capabilities CAPABILITY_IAM \
+            --region $AWS_REGION \
+            --no-fail-on-no-changes \
+            --role-arn ${{ secrets.AWS_CFN_EXECUTION_ROLE_ARN }} \
+            --parameter-overrides \
+              DeploymentBucketName=$S3_BUCKET \
+              EBApplicationName=$EB_APPLICATION_NAME \
+              EBEnvironmentName=$EB_ENVIRONMENT_NAME
+
+      - name: Generate deployment package
+        run: |
+          VERSION_LABEL="deploy-$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA:0:7}"
+          echo "VERSION_LABEL=$VERSION_LABEL" >> $GITHUB_ENV
+
+          # client/build/ is included at the root of the zip so the server's
+          # path.join(__dirname, '../client/build') resolves correctly on EB
+          zip -r deploy.zip \
+            server/ \
+            client/build/ \
+            Procfile \
+            .ebextensions/ \
+            .platform/ \
+            scenarios.json
+
+      - name: Upload to S3
+        run: aws s3 cp deploy.zip s3://$S3_BUCKET/deploys/${{ env.VERSION_LABEL }}.zip
+
+      - name: Deploy to Elastic Beanstalk
+        run: |
+          aws elasticbeanstalk create-application-version \
+            --application-name "$EB_APPLICATION_NAME" \
+            --version-label "${{ env.VERSION_LABEL }}" \
+            --source-bundle S3Bucket="$S3_BUCKET",S3Key="deploys/${{ env.VERSION_LABEL }}.zip"
+
+          aws elasticbeanstalk update-environment \
+            --environment-name "$EB_ENVIRONMENT_NAME" \
+            --version-label "${{ env.VERSION_LABEL }}"
+
+      - name: Wait for deployment to complete
+        run: |
+          aws elasticbeanstalk wait environment-updated \
+            --environment-name "$EB_ENVIRONMENT_NAME"
+
+      - name: Verify environment health
+        run: |
+          STATUS=$(aws elasticbeanstalk describe-environments \
+            --environment-names "$EB_ENVIRONMENT_NAME" \
+            --query 'Environments[0].Status' \
+            --output text)
+          HEALTH=$(aws elasticbeanstalk describe-environments \
+            --environment-names "$EB_ENVIRONMENT_NAME" \
+            --query 'Environments[0].Health' \
+            --output text)
+
+          echo "Elastic Beanstalk status: $STATUS"
+          echo "Elastic Beanstalk health: $HEALTH"
+
+          if [ "$STATUS" != "Ready" ] || [ "$HEALTH" != "Green" ]; then
+            echo "Deployment completed but environment is not healthy."
+            exit 1
+          fi

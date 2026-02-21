@@ -2,7 +2,7 @@
   "name": "lead-from-here-client",
   "version": "0.1.0",
   "private": true,
-  "proxy": "http://localhost:5001",
+  "proxy": "http://localhost:8080",
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -12,6 +12,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "lint": "eslint src/ --max-warnings 0",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
