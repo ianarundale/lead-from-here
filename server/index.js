@@ -173,8 +173,8 @@ app.get('/status', (req, res) => {
   res.json({ version: process.env.DEPLOY_VERSION || 'dev' });
 });
 
-// Reset all votes (POST /reset)
-app.post('/reset', (req, res) => {
+// Reset all votes (GET /reset)
+app.get('/reset', (req, res) => {
   votingState.behaviors.forEach(behavior => {
     behavior.votes = { red: 0, amber: 0, green: 0 };
     behavior.userVotes = {};
