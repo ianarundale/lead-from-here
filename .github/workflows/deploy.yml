@@ -80,7 +80,7 @@ jobs:
           aws cloudformation deploy \
             --template-file infrastructure/cloudformation.yml \
             --stack-name lead-from-here-prod \
-            --capabilities CAPABILITY_IAM \
+            --capabilities CAPABILITY_NAMED_IAM \
             --region $AWS_REGION \
             --role-arn ${{ secrets.AWS_CFN_EXECUTION_ROLE_ARN }} \
             --parameter-overrides \
