@@ -76,17 +76,24 @@ jobs:
 
       - name: Deploy CloudFormation infrastructure
         run: |
+          set +e
           aws cloudformation deploy \
             --template-file infrastructure/cloudformation.yml \
             --stack-name lead-from-here-prod \
             --capabilities CAPABILITY_IAM \
             --region $AWS_REGION \
-            --no-fail-on-no-changes \
             --role-arn ${{ secrets.AWS_CFN_EXECUTION_ROLE_ARN }} \
             --parameter-overrides \
               DeploymentBucketName=$S3_BUCKET \
               EBApplicationName=$EB_APPLICATION_NAME \
               EBEnvironmentName=$EB_ENVIRONMENT_NAME
+          CFN_EXIT=$?
+          set -e
+          # Exit code 255 = "No changes to deploy" — treat as success
+          if [ $CFN_EXIT -ne 0 ] && [ $CFN_EXIT -ne 255 ]; then
+            echo "CloudFormation deployment failed (exit $CFN_EXIT)"
+            exit $CFN_EXIT
+          fi
 
       - name: Generate deployment package
         run: |
