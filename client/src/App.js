@@ -31,9 +31,9 @@ function App() {
         return configuredBackendUrl;
       }
 
-      // Local dev runs the API on port 5001; deployed env is same-origin.
+      // Local dev runs the API on port 8080; deployed env is same-origin.
       const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-      return isLocalhost ? 'http://localhost:5001' : window.location.origin;
+      return isLocalhost ? 'http://localhost:8080' : window.location.origin;
     };
 
     const getWebSocketUrl = (backendUrl) => {
