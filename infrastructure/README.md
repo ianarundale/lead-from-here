@@ -147,6 +147,23 @@ the EB endpoint URL from the CloudFormation outputs and add it as `AWS_EB_URL`.
 Changes to `cloudformation.yml` are picked up automatically on the next push to
 `main` — the pipeline deploys CloudFormation before deploying the application.
 
+### Validating locally before pushing
+
+Use [cfn-lint](https://github.com/aws-cloudformation/cfn-lint) to catch invalid
+option names, namespaces, and other template errors without waiting for a full
+pipeline run.
+
+```bash
+# Install once
+pip3 install cfn-lint
+
+# Run against the template
+cfn-lint infrastructure/cloudformation.yml
+```
+
+No output means no errors. This is much faster than pushing and waiting for the
+EB environment to fail mid-deploy.
+
 To update `github-oidc.yml` (e.g. to change IAM permissions):
 
 ```bash
