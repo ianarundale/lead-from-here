@@ -17,7 +17,7 @@ brew install awsebcli
 aws configure
 # Enter your AWS Access Key ID
 # Enter your AWS Secret Access Key
-# Region: us-east-1 (or your preferred region)
+# Region: eu-west-1 (or your preferred region)
 # Output format: json
 ```
 
@@ -26,7 +26,7 @@ aws configure
 cd /Users/arundi01/workspace/lead-from-here
 
 # Initialize EB
-eb init -p node.js-18 lead-from-here-api --region us-east-1
+eb init -p node.js-18 lead-from-here-api --region eu-west-1
 
 # Choose "Yes" for CodeCommit (or use GitHub for automation)
 # This creates `.elasticbeanstalk/config.yml`
@@ -42,7 +42,7 @@ eb logs --stream
 
 # Open in browser to verify
 eb open
-# Save the URL shown (e.g., http://lead-from-here-prod.us-east-1.elasticbeanstalk.com)
+# Save the URL shown (e.g., http://lead-from-here-prod.eu-west-1.elasticbeanstalk.com)
 ```
 
 ### 1d. Update CORS for WebSocket
@@ -59,7 +59,7 @@ eb restart
 ## Step 2: Get Backend URL
 After deployment, your backend URL will be:
 ```
-http://lead-from-here-prod.us-east-1.elasticbeanstalk.com
+http://lead-from-here-prod.eu-west-1.elasticbeanstalk.com
 ```
 
 **Save this URL** - you'll need it for the frontend.
@@ -86,7 +86,7 @@ git push origin main
 1. In Amplify, click **App settings** → **Environment variables**
 2. Add variable:
    - Key: `REACT_APP_BACKEND_URL`
-   - Value: `http://lead-from-here-prod.us-east-1.elasticbeanstalk.com`
+   - Value: `http://lead-from-here-prod.eu-west-1.elasticbeanstalk.com`
 
 3. Edit `amplify.yml` build settings:
 ```yaml
