@@ -1,0 +1,254 @@
+/* Behavior Card Styles */
+.behavior-card {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  animation: slideIn 0.4s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scenario Section */
+.scenario-section {
+  margin-bottom: 2.5rem;
+}
+
+.scenario-section h2 {
+  margin: 0 0 1rem 0;
+  color: #1f2937;
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.scenario-text {
+  color: #374151;
+  font-size: 1.1rem;
+  line-height: 1.8;
+  margin: 0 0 1.5rem 0;
+  padding: 1.5rem;
+  background: #f9fafb;
+  border-left: 4px solid #3b82f6;
+  border-radius: 4px;
+}
+
+/* Prompts */
+.prompts {
+  margin-top: 1.5rem;
+}
+
+.prompts h3 {
+  font-size: 0.95rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 1rem 0;
+}
+
+.prompts ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.prompts li {
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.prompts li:before {
+  content: "💬";
+  position: absolute;
+  left: 0;
+}
+
+/* User Vote Section */
+.user-vote-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-radius: 8px;
+  border: 2px solid #22c55e;
+}
+
+.user-vote-section h3 {
+  margin: 0 0 0.75rem 0;
+  color: #15803d;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.user-vote {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #16a34a;
+}
+
+.user-vote.red {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border-color: #ef4444;
+  color: #dc2626;
+}
+
+.user-vote.red::before {
+  content: "🔴 ";
+}
+
+.user-vote.amber {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: #f59e0b;
+  color: #d97706;
+}
+
+.user-vote.amber::before {
+  content: "🟠 ";
+}
+
+.user-vote.green {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-color: #22c55e;
+  color: #16a34a;
+}
+
+.user-vote.green::before {
+  content: "🟢 ";
+}
+
+/* Vote Stats */
+.vote-stats {
+  background: #f3f4f6;
+  padding: 2rem;
+  border-radius: 8px;
+}
+
+.vote-stats h3 {
+  margin: 0 0 1.5rem 0;
+  color: #1f2937;
+  font-size: 1.2rem;
+}
+
+.vote-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.vote-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 140px;
+}
+
+.stat .emoji {
+  font-size: 2rem;
+}
+
+.stat .label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.vote-details {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 80px;
+}
+
+.stat .count {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.stat .percentage {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+/* Vote Bar */
+.vote-bar {
+  flex: 1;
+  height: 24px;
+  background: white;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 0.5rem;
+}
+
+.bar-fill.red-fill {
+  background: linear-gradient(90deg, #dc2626, #ef4444);
+}
+
+.bar-fill.amber-fill {
+  background: linear-gradient(90deg, #d97706, #f59e0b);
+}
+
+.bar-fill.green-fill {
+  background: linear-gradient(90deg, #16a34a, #22c55e);
+}
+
+/* Total Votes */
+.total-votes {
+  text-align: center;
+  margin-top: 1.5rem;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .behavior-card {
+    padding: 1.5rem;
+  }
+  
+  .scenario-section h2 {
+    font-size: 1.2rem;
+  }
+  
+  .scenario-text {
+    font-size: 1rem;
+  }
+  
+  .stat {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  
+  .vote-bar {
+    width: 100%;
+    min-width: unset;
+  }
+}
