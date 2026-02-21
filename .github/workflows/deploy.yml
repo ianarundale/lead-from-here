@@ -45,13 +45,11 @@ jobs:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: |
-            package-lock.json
             server/package-lock.json
             client/package-lock.json
 
       - name: Install dependencies
         run: |
-          npm ci
           cd server && npm ci
           cd ../client && npm ci
 
