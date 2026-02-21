@@ -52,6 +52,14 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkEnhancedHealth
         - arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkService
+      Policies:
+        - PolicyName: EBServiceRoleEC2Images
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: ec2:DescribeImages
+                Resource: '*'
 
   # IAM Role assigned to EC2 instances via instance profile
   EBInstanceProfileRole:
