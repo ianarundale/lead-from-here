@@ -16,7 +16,7 @@ Parameters:
 
   PlatformVersion:
     Type: String
-    Default: "64bit Amazon Linux 2023 v6.4.1 running Node.js 20"
+    Default: "64bit Amazon Linux 2023 v6.7.4 running Node.js 20"
     Description: Elastic Beanstalk Node.js platform version (update when AWS releases new versions)
 
 Resources:
