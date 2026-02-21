@@ -87,29 +87,47 @@ npm start
 6. **Switch behaviors** using the buttons at the bottom
 7. **Reflect on the results** using the discussion prompts from the PowerPoint presentation
 
-## Managing Behaviors
+## API Endpoints
 
-### Add a New Behavior
+**Production base URL:** `http://lead-from-here-prod.eba-duq5dpad.eu-west-1.elasticbeanstalk.com`
+
+Replace with `http://localhost:8080` for local development.
+
+### Get deployment version
 
 ```bash
-curl -X POST http://localhost:5000/api/behaviors \
+curl http://localhost:8080/status
+```
+
+### Reset all votes
+
+Resets all vote counts to zero, clears individual user votes, and sets the current behavior back to 1. Broadcasts the reset to all connected WebSocket clients.
+
+```bash
+curl http://localhost:8080/reset
+```
+
+### Get current voting state
+
+```bash
+curl http://localhost:8080/api/state
+```
+
+### Get all behaviors
+
+```bash
+curl http://localhost:8080/api/behaviors
+```
+
+### Add a new behavior
+
+```bash
+curl -X POST http://localhost:8080/api/behaviors \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Behavior Title",
     "description": "Description of the behavior"
   }'
-```
-
-### Get All Behaviors
-
-```bash
-curl http://localhost:5000/api/behaviors
-```
-
-### Get Current Voting State
-
-```bash
-curl http://localhost:5000/api/state
 ```
 
 ## Project Structure
