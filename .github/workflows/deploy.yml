@@ -6,6 +6,9 @@ on:
     paths:
       - 'client/**'
       - 'server/**'
+      - 'Procfile'
+      - '.ebextensions/**'
+      - '.platform/**'
       - 'scenarios.json'
       - 'package.json'
       - 'package-lock.json'
@@ -27,6 +30,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       id-token: write  # Required for OIDC token request
       contents: read
@@ -119,3 +123,22 @@ jobs:
         run: |
           aws elasticbeanstalk wait environment-updated \
             --environment-name "$EB_ENVIRONMENT_NAME"
+
+      - name: Verify environment health
+        run: |
+          STATUS=$(aws elasticbeanstalk describe-environments \
+            --environment-names "$EB_ENVIRONMENT_NAME" \
+            --query 'Environments[0].Status' \
+            --output text)
+          HEALTH=$(aws elasticbeanstalk describe-environments \
+            --environment-names "$EB_ENVIRONMENT_NAME" \
+            --query 'Environments[0].Health' \
+            --output text)
+
+          echo "Elastic Beanstalk status: $STATUS"
+          echo "Elastic Beanstalk health: $HEALTH"
+
+          if [ "$STATUS" != "Ready" ] || [ "$HEALTH" != "Green" ]; then
+            echo "Deployment completed but environment is not healthy."
+            exit 1
+          fi

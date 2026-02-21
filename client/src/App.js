@@ -25,22 +25,25 @@ function App() {
 
   useEffect(() => {
     // Connect to WebSocket server
-    // In production (AWS), use environment variable
-    // In development, use localhost:5001
     const getBackendUrl = () => {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL;
-      if (backendUrl) {
-        return backendUrl;
+      const configuredBackendUrl = process.env.REACT_APP_BACKEND_URL?.trim();
+      if (configuredBackendUrl) {
+        return configuredBackendUrl;
       }
-      // Fallback for local development
-      return `${window.location.protocol}//${window.location.hostname}:5001`;
+
+      // Local dev runs the API on port 5001; deployed env is same-origin.
+      const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+      return isLocalhost ? 'http://localhost:5001' : window.location.origin;
+    };
+
+    const getWebSocketUrl = (backendUrl) => {
+      const backend = new URL(backendUrl, window.location.origin);
+      const wsProtocol = backend.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${wsProtocol}//${backend.host}`;
     };
 
     const backendUrl = getBackendUrl();
-    const wsProtocol = backendUrl.startsWith('https') ? 'wss:' : 'ws:';
-    const wsHost = backendUrl.replace(/^https?:\/\//, '').split(':')[0];
-    const wsPort = backendUrl.includes(':') ? ':' + backendUrl.split(':').pop() : '';
-    const websocket = new WebSocket(`${wsProtocol}//${wsHost}${wsPort || ':5001'}`);
+    const websocket = new WebSocket(getWebSocketUrl(backendUrl));
 
     websocket.onopen = () => {
       console.log('Connected to server');
@@ -188,4 +191,3 @@ function App() {
 }
 
 export default App;
-
