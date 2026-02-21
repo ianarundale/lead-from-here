@@ -29,3 +29,7 @@ npm-debug.log*
 
 # OS
 Thumbs.db
+
+# Workshop materials
+*.pptx
+"scenarios copy.json"

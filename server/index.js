@@ -9,7 +9,13 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-app.use(cors());
+// CORS is only needed in development where the React dev server (port 3000)
+// makes cross-origin requests to this server (port 5001). In production the
+// React build is served from this same Express process, so all requests are
+// same-origin and the cors middleware is not required.
+if (process.env.NODE_ENV !== 'production') {
+  app.use(cors());
+}
 app.use(express.json());
 
 // Load scenarios from scenarios.json
