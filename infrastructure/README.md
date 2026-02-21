@@ -1,205 +1,200 @@
 # Infrastructure
 
-This folder contains Infrastructure as Code (IaC) for the Lead From Here application.
+This folder contains the Infrastructure as Code (IaC) for the Lead From Here application.
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        GitHub                                │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │              GitHub Actions                          │   │
-│  │  1. Checkout code                                    │   │
-│  │  2. Build React app                                  │   │
-│  │  3. Auth via OIDC                                    │   │
-│  │  4. Deploy CloudFormation (S3 + EB)                 │   │
-│  │  5. Deploy to Elastic Beanstalk                     │   │
-│  └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                         AWS                                 │
-├─────────────────────────────────────────────────────────────┤
-│  MANUALLY CREATED (one-time):                              │
-│  • OIDC Provider (token.actions.githubusercontent.com)      │
-│  • IAM Role (GitHubDeployRole)                             │
-│  • IAM Policies (EB + S3 + CFN permissions)               │
-├─────────────────────────────────────────────────────────────┤
-│  CLOUDFORMATION (managed):                                 │
-│  • S3 Bucket (lead-from-here-deploy)                       │
-│  • Elastic Beanstalk Application                           │
-│  • Elastic Beanstalk Environment (t2.micro, Node.js 20)    │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                          GitHub                               │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │                   GitHub Actions                        │  │
+│  │  1. Lint + test + build React app                      │  │
+│  │  2. Authenticate via OIDC (no stored keys)             │  │
+│  │  3. Deploy CloudFormation (infra, via CFN exec role)   │  │
+│  │  4. Upload deploy package to S3                        │  │
+│  │  5. Create EB application version + update environment │  │
+│  │  6. Wait for environment health                        │  │
+│  └────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────────┐
+│                            AWS                               │
+├──────────────────────────────────────────────────────────────┤
+│  github-oidc.yml  (deploy once manually before first run)   │
+│  • OIDC Provider  (token.actions.githubusercontent.com)      │
+│  • GitHubDeployRole  — assumed by GitHub Actions via OIDC   │
+│      Policies: EB deployment, S3 read/write, CFN deploy     │
+│  • CFNExecutionRole  — assumed by CloudFormation only       │
+│      Policies: IAM, S3 bucket create, EB create/manage      │
+├──────────────────────────────────────────────────────────────┤
+│  cloudformation.yml  (deployed automatically by pipeline)   │
+│  • S3 Bucket          — versioned, encrypted, private       │
+│  • EBServiceRole      — EB health reporting + lifecycle     │
+│  • EBInstanceProfile  — IAM profile for EC2 instances       │
+│  • EB Application     — with version lifecycle (max 20)     │
+│  • EB Environment     — AL2023, Node.js 20, t3.micro,       │
+│                          single-instance, nginx proxy        │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-## Why Split Security Resources?
+## Why Two CloudFormation Stacks?
 
-The OIDC provider and IAM role must be created **manually first** because:
-1. GitHub Actions needs these to authenticate
-2. CloudFormation can't create them while deploying from GitHub Actions
-3. This is a "chicken-and-egg" problem - the role is needed to run the workflow
+**`github-oidc.yml`** must be deployed manually once, before the pipeline exists.
+It creates the OIDC provider and IAM roles that GitHub Actions needs to authenticate.
+This is the classic bootstrap problem — you need credentials to create credentials.
 
-## One-Time Manual Setup
+**`cloudformation.yml`** is deployed automatically by the pipeline on every push
+to `main`. It manages all application infrastructure. CloudFormation assumes
+`CFNExecutionRole` when deploying this stack so the GitHub Actions role never
+needs direct IAM creation permissions.
 
-### 1. Create OIDC Provider & Role
+---
+
+## One-Time Setup
+
+### Step 1 — Deploy the OIDC & IAM stack
+
+You need AWS credentials with IAM and CloudFormation permissions for this
+one-time step (e.g. an admin role or your personal AWS CLI profile).
 
 ```bash
-# Get your AWS account ID
-export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
+export AWS_REGION=eu-west-1
+export GITHUB_OWNER=<your-github-username-or-org>
+export GITHUB_REPO=lead-from-here
+export S3_BUCKET=<globally-unique-bucket-name>
 
-# Create OIDC provider
-aws iam create-open-id-connect-provider \
-  --url https://token.actions.githubusercontent.com \
-  --client-id-list "sts.amazonaws.com" \
-  --thumbprint-list "6938FD4D98BABEC356DA5494E410BCB82C2AD4A6" \
-  --region eu-west-1
-
-# Create IAM role with trust policy
-cat > /tmp/trust-policy.json << EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Federated": "arn:aws:iam::${AWS_ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com"
-      },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringLike": {
-          "token.actions.githubusercontent.com:sub": "repo:ianarundale/lead-from-here:*"
-        }
-      }
-    }
-  ]
-}
-EOF
-
-aws iam create-role \
-  --role-name GitHubDeployRole \
-  --assume-role-policy-document file:///tmp/trust-policy.json \
-  --region eu-west-1
+aws cloudformation deploy \
+  --template-file infrastructure/github-oidc.yml \
+  --stack-name lead-from-here-oidc \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --region $AWS_REGION \
+  --parameter-overrides \
+    GitHubOwner=$GITHUB_OWNER \
+    GitHubRepo=$GITHUB_REPO \
+    RoleName=github-actions-lead-from-here \
+    StackName=lead-from-here-prod \
+    AWSRegion=$AWS_REGION \
+    S3BucketName=$S3_BUCKET \
+    EBApplicationName=lead-from-here \
+    EBEnvironmentName=lead-from-here-prod
 ```
 
-### 2. Attach Permissions
+### Step 2 — Retrieve the output ARNs
 
 ```bash
-# Elastic Beanstalk policy
-aws iam attach-role-policy \
-  --role-name GitHubDeployRole \
-  --policy-arn arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier \
-  --region eu-west-1
-
-# S3 policy (limited to deployment bucket)
-aws iam create-policy \
-  --policy-name GitHubDeployS3Access \
-  --policy-document '{
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Effect": "Allow",
-        "Action": ["s3:ListBucket", "s3:GetObject", "s3:PutObject"],
-        "Resource": ["arn:aws:s3:::lead-from-here-deploy", "arn:aws:s3:::lead-from-here-deploy/*"]
-      }
-    ]
-  }' \
-  --region eu-west-1
-
-aws iam attach-role-policy \
-  --role-name GitHubDeployRole \
-  --policy-arn arn:aws:iam::${AWS_ACCOUNT_ID}:policy/GitHubDeployS3Access \
-  --region eu-west-1
-
-# CloudFormation policy (limited to this stack)
-aws iam put-role-policy \
-  --role-name GitHubDeployRole \
-  --policy-name GitHubDeployCFNPolicy \
-  --policy-document '{
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Effect": "Allow",
-        "Action": [
-          "cloudformation:CreateStack",
-          "cloudformation:UpdateStack",
-          "cloudformation:DescribeStacks",
-          "cloudformation:DescribeStackResources",
-          "cloudformation:GetTemplate",
-          "cloudformation:ValidateTemplate"
-        ],
-        "Resource": "arn:aws:cloudformation:eu-west-1:'${AWS_ACCOUNT_ID}':stack/lead-from-here-prod/*"
-      }
-    ]
-  }' \
-  --region eu-west-1
+aws cloudformation describe-stacks \
+  --stack-name lead-from-here-oidc \
+  --region $AWS_REGION \
+  --query 'Stacks[0].Outputs'
 ```
 
-### 3. Add GitHub Secrets
+Note the values for `GitHubRoleArn` and `CFNExecutionRoleArn`.
 
-In your GitHub repo → Settings → Secrets and variables → Actions:
+### Step 3 — Add GitHub Secrets
+
+In your repo → **Settings → Secrets and variables → Actions → New repository secret**:
 
 | Secret | Value |
 |--------|-------|
-| `AWS_ROLE_ARN` | `arn:aws:iam::123456789012:role/GitHubDeployRole` |
-| `AWS_S3_BUCKET` | `lead-from-here-deploy` |
-| `AWS_EB_URL` | Your EB URL after deployment |
+| `AWS_ROLE_ARN` | `GitHubRoleArn` output from Step 2 |
+| `AWS_CFN_EXECUTION_ROLE_ARN` | `CFNExecutionRoleArn` output from Step 2 |
+| `AWS_S3_BUCKET` | The bucket name you chose in Step 1 |
+| `AWS_EB_URL` | Leave blank for now — add after the first deployment |
 
-## CloudFormation Template
+> **Why `AWS_CFN_EXECUTION_ROLE_ARN`?**
+> The pipeline passes this role to `aws cloudformation deploy --role-arn`.
+> CloudFormation assumes it to create IAM roles and other infrastructure
+> resources. This keeps those broad creation permissions off the GitHub
+> Actions role entirely.
 
-`cloudformation.yml` manages:
+### Step 4 — Push to main
 
-| Resource | Description |
-|----------|-------------|
-| `DeploymentBucket` | S3 bucket for deployment packages |
-| `EBApplication` | Elastic Beanstalk application |
-| `EBEnvironment` | Environment (t2.micro, Node.js 20) |
+The pipeline triggers automatically. After the first successful run, copy
+the EB endpoint URL from the CloudFormation outputs and add it as `AWS_EB_URL`.
 
-### Deploy Infrastructure
+---
+
+## CloudFormation Resources
+
+### `github-oidc.yml`
+
+| Resource | Type | Purpose |
+|----------|------|---------|
+| `GitHubOIDCProvider` | `AWS::IAM::OIDCProvider` | Federates GitHub Actions tokens with AWS STS |
+| `GitHubDeployRole` | `AWS::IAM::Role` | Assumed by pipeline; restricted to `refs/heads/main` only |
+| `CFNExecutionRole` | `AWS::IAM::Role` | Assumed by CloudFormation; carries IAM/S3/EB creation permissions |
+| `EBPolicy` | `AWS::IAM::Policy` | EB deployment actions scoped to this project's ARNs |
+| `S3Policy` | `AWS::IAM::Policy` | S3 read/write scoped to the deployment bucket |
+| `CloudFormationPolicy` | `AWS::IAM::Policy` | CFN deploy + `iam:PassRole` for CFN execution role |
+
+### `cloudformation.yml`
+
+| Resource | Type | Purpose |
+|----------|------|---------|
+| `DeploymentBucket` | `AWS::S3::Bucket` | Stores versioned deployment packages |
+| `EBServiceRole` | `AWS::IAM::Role` | EB service role for health reporting and version lifecycle |
+| `EBInstanceProfileRole` | `AWS::IAM::Role` | IAM role assigned to EC2 instances |
+| `EBInstanceProfile` | `AWS::IAM::InstanceProfile` | Instance profile wrapping `EBInstanceProfileRole` |
+| `EBApplication` | `AWS::ElasticBeanstalk::Application` | EB application with version lifecycle (max 20 versions) |
+| `EBEnvironment` | `AWS::ElasticBeanstalk::Environment` | Single-instance environment, AL2023, Node.js 20, t3.micro |
+
+---
+
+## Updating Infrastructure
+
+Changes to `cloudformation.yml` are picked up automatically on the next push to
+`main` — the pipeline deploys CloudFormation before deploying the application.
+
+To update `github-oidc.yml` (e.g. to change IAM permissions):
 
 ```bash
-cd infrastructure
-
 aws cloudformation deploy \
-  --template-file cloudformation.yml \
-  --stack-name lead-from-here-prod \
-  --capabilities CAPABILITY_IAM \
-  --region eu-west-1
+  --template-file infrastructure/github-oidc.yml \
+  --stack-name lead-from-here-oidc \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --region eu-west-1 \
+  --parameter-overrides \
+    GitHubOwner=<owner> \
+    GitHubRepo=lead-from-here \
+    RoleName=github-actions-lead-from-here \
+    StackName=lead-from-here-prod \
+    AWSRegion=eu-west-1 \
+    S3BucketName=<bucket> \
+    EBApplicationName=lead-from-here \
+    EBEnvironmentName=lead-from-here-prod
 ```
 
-### Update Infrastructure
+---
 
-After modifying `cloudformation.yml`:
-
-```bash
-aws cloudformation deploy \
-  --template-file cloudformation.yml \
-  --stack-name lead-from-here-prod \
-  --capabilities CAPABILITY_IAM \
-  --region eu-west-1
-```
-
-### Delete Infrastructure
+## Teardown
 
 ```bash
+# Delete application infrastructure (EB environment, S3 bucket must be empty first)
 aws cloudformation delete-stack \
   --stack-name lead-from-here-prod \
   --region eu-west-1
+
+# Delete OIDC/IAM stack (OIDC provider is retained by DeletionPolicy)
+aws cloudformation delete-stack \
+  --stack-name lead-from-here-oidc \
+  --region eu-west-1
 ```
 
-## Deployment
-
-Every push to `main` branch automatically:
-1. Builds the React app
-2. Deploys CloudFormation (if infrastructure changed)
-3. Deploys to Elastic Beanstalk
-
-To deploy manually:
-- Go to GitHub → Actions → Deploy to AWS → Run workflow
+---
 
 ## Viewing Logs
 
 ```bash
-eb logs --region eu-west-1
-eb open --region eu-west-1
+# Stream recent EB logs
+aws elasticbeanstalk request-environment-info \
+  --environment-name lead-from-here-prod \
+  --info-type tail \
+  --region eu-west-1
+
+aws elasticbeanstalk retrieve-environment-info \
+  --environment-name lead-from-here-prod \
+  --info-type tail \
+  --region eu-west-1
 ```
