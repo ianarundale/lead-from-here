@@ -89,8 +89,6 @@ npm start
 
 ## API Endpoints
 
-**Production base URL:** `http://lead-from-here-prod.eba-duq5dpad.eu-west-1.elasticbeanstalk.com`
-
 Replace with `http://localhost:8080` for local development.
 
 ### Get deployment version
