@@ -80,17 +80,16 @@ jobs:
 
       - name: Deploy CloudFormation stack
         run: |
-          set +e
+          set -euo pipefail
 
-          # Check if stack exists
-          STACK_EXISTS=$(aws cloudformation describe-stacks \
+          STACK_STATUS=$(aws cloudformation describe-stacks \
             --stack-name ${{ env.STACK_NAME }} \
             --region ${{ env.AWS_REGION }} \
             --query 'Stacks[0].StackStatus' \
             --output text 2>/dev/null || echo "DOES_NOT_EXIST")
 
-          if [[ "$STACK_EXISTS" == "ROLLBACK_COMPLETE" || "$STACK_EXISTS" == "CREATE_FAILED" ]]; then
-            echo "Stack is in $STACK_EXISTS — deleting before redeploy"
+          if [[ "$STACK_STATUS" == "REVIEW_IN_PROGRESS" || "$STACK_STATUS" == "ROLLBACK_COMPLETE" || "$STACK_STATUS" == "CREATE_FAILED" ]]; then
+            echo "Stack is in $STACK_STATUS — deleting before redeploy"
             aws cloudformation delete-stack \
               --stack-name ${{ env.STACK_NAME }} \
               --region ${{ env.AWS_REGION }}
@@ -99,7 +98,6 @@ jobs:
               --region ${{ env.AWS_REGION }}
           fi
 
-          # Deploy or update stack
           aws cloudformation deploy \
             --template-file infrastructure/serverless.yml \
             --stack-name ${{ env.STACK_NAME }} \
@@ -110,19 +108,14 @@ jobs:
               BranchName=${{ env.BRANCH_NAME }} \
               Environment=production \
             --tags \
-              Key=Project,Value=lead-from-here
-
-          CFN_EXIT=$?
-          set -e
-          # Exit code 255 = "No changes to deploy" — treat as success
-          if [ $CFN_EXIT -ne 0 ] && [ $CFN_EXIT -ne 255 ]; then
-            echo "CloudFormation deployment failed (exit $CFN_EXIT)"
-            exit $CFN_EXIT
-          fi
+              Key=Project,Value=lead-from-here \
+            --no-fail-on-empty-changeset
 
       - name: Get CloudFormation outputs
         id: cfn-outputs
         run: |
+          set -euo pipefail
+
           WEBSOCKET_URL=$(aws cloudformation describe-stacks \
             --stack-name ${{ env.STACK_NAME }} \
             --region ${{ env.AWS_REGION }} \
@@ -146,6 +139,18 @@ jobs:
             --region ${{ env.AWS_REGION }} \
             --query "Stacks[0].Outputs[?OutputKey=='LambdaCodeBucketName'].OutputValue" \
             --output text)
+
+          for value in "$WEBSOCKET_URL" "$FRONTEND_DOMAIN" "$FRONTEND_BUCKET_NAME" "$LAMBDA_BUCKET"; do
+            if [[ -z "$value" || "$value" == "None" ]]; then
+              echo "Required CloudFormation output missing. Stack status:"
+              aws cloudformation describe-stacks \
+                --stack-name ${{ env.STACK_NAME }} \
+                --region ${{ env.AWS_REGION }} \
+                --query "Stacks[0].{Status:StackStatus,Reason:StackStatusReason}" \
+                --output table
+              exit 1
+            fi
+          done
 
           echo "WebSocket URL: $WEBSOCKET_URL"
           echo "Frontend URL: https://$FRONTEND_DOMAIN"
