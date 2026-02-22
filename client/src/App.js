@@ -12,6 +12,7 @@ function App() {
   const [localBehaviorId, setLocalBehaviorId] = useState(1); // Track independent navigation
   const [userVotes, setUserVotes] = useState({}); // Track user's votes: { behaviorId: 'red'/'amber'/'green' }
   const [hasVoted, setHasVoted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [ws, setWs] = useState(null);
   const [userId] = useState(() => {
     // Generate or retrieve a user ID for this session
@@ -73,6 +74,7 @@ function App() {
             }
           });
           setUserVotes(restoredVotes);
+          setIsLoading(false);
         }
         // In sync mode, sync the local behavior ID with server
         if (message.data.syncMode) {
@@ -160,7 +162,13 @@ function App() {
       </header>
 
       <main className="app-main">
-        <div className="behaviors-list">
+        {isLoading && (
+          <div className="loading-spinner">
+            <div className="spinner"></div>
+            <p>Loading scenarios…</p>
+          </div>
+        )}
+        <div className="behaviors-list" style={isLoading ? { visibility: 'hidden' } : {}}>
           <h3>Navigate Scenarios ({displayBehaviorId} of {votingState.behaviors.length})</h3>
           <div className="behavior-buttons">
             {votingState.behaviors.map((behavior) => (
