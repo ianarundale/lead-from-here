@@ -42,7 +42,7 @@ lead-from-here/
 ├── infrastructure/
 │   ├── github-oidc.yml   # OIDC bootstrap (one-time setup)
 │   └── README.md
-├── sst.config.ts         # Infrastructure definition
+└── sst.config.ts         # Infrastructure definition
 ```
 
 ## Local Development
