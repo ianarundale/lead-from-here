@@ -81,14 +81,14 @@
 .user-vote-section {
   margin-bottom: 2rem;
   padding: 1.5rem;
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  background: #f3f4f6;
   border-radius: 8px;
-  border: 2px solid #22c55e;
+  border: 1px solid #e5e7eb;
 }
 
 .user-vote-section h3 {
   margin: 0 0 0.75rem 0;
-  color: #15803d;
+  color: #1f2937;
   font-size: 0.95rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -137,10 +137,50 @@
   border-radius: 8px;
 }
 
+.vote-stats.collapsed {
+  padding: 0.85rem 1rem;
+}
+
+.vote-stats-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.vote-stats.collapsed .vote-stats-header {
+  margin-bottom: 0;
+}
+
 .vote-stats h3 {
-  margin: 0 0 1.5rem 0;
+  margin: 0;
   color: #1f2937;
   font-size: 1.2rem;
+}
+
+.vote-stats.collapsed h3 {
+  font-size: 0.95rem;
+}
+
+.vote-stats-toggle {
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #374151;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vote-stats.collapsed .vote-stats-toggle {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.75rem;
+}
+
+.vote-stats-toggle:hover {
+  border-color: #9ca3af;
 }
 
 .vote-breakdown {
@@ -245,6 +285,14 @@
   .stat {
     flex-wrap: wrap;
     gap: 1rem;
+  }
+
+  .vote-stats {
+    padding: 1.25rem;
+  }
+
+  .vote-stats.collapsed {
+    padding: 0.7rem 0.85rem;
   }
   
   .vote-bar {

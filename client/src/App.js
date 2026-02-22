@@ -138,11 +138,10 @@ function App() {
   return (
     <div className="App">
       <header className="app-header">
-        <div className="connected-users-badge" aria-live="polite">
-          👥 {votingState.connectedUsers || 0} connected
-        </div>
-        <div className="header-top">
-          <h1>🎯 Lead From Here v2</h1>
+        <div className="top-status-bar">
+          <div className="connected-users-badge" aria-live="polite">
+            👥 {votingState.connectedUsers || 0} connected
+          </div>
           <div className="sync-toggle">
             <label>
               <input
@@ -157,10 +156,13 @@ function App() {
                 }}
               />
               <span className="toggle-label">
-                {votingState.syncMode ? '🔗 Synchronized' : '👤 Independent'}
+                {votingState.syncMode ? "🔗 Sync'd" : '👤 Independent'}
               </span>
             </label>
           </div>
+        </div>
+        <div className="header-top">
+          <h1>🎯 Lead From Here v2</h1>
         </div>
         <p>Interactive Leadership Behavior Assessment</p>
       </header>
@@ -173,25 +175,27 @@ function App() {
           </div>
         )}
         <div className="behaviors-list" style={isLoading ? { visibility: 'hidden' } : {}}>
-          <h3>Navigate Scenarios ({displayBehaviorId} of {votingState.behaviors.length})</h3>
-          <div className="behavior-buttons">
-            {votingState.behaviors.map((behavior) => (
-              <button
-                key={behavior.id}
-                className={`behavior-btn ${behavior.id === displayBehaviorId ? 'active' : ''} ${userVotes[behavior.id] ? 'voted' : ''}`}
-                onClick={() => handleBehaviorNavigation(behavior.id)}
-                title={behavior.scenario}
-              >
-                {behavior.id}
-                {userVotes[behavior.id] && (
-                  <span className={`vote-indicator ${userVotes[behavior.id]}`}>
-                    {userVotes[behavior.id] === 'red' && '🔴'}
-                    {userVotes[behavior.id] === 'amber' && '🟠'}
-                    {userVotes[behavior.id] === 'green' && '🟢'}
-                  </span>
-                )}
-              </button>
-            ))}
+          <div className="behaviors-list-inner">
+            <h3>Navigate Scenarios ({displayBehaviorId} of {votingState.behaviors.length})</h3>
+            <div className="behavior-buttons">
+              {votingState.behaviors.map((behavior) => (
+                <button
+                  key={behavior.id}
+                  className={`behavior-btn ${behavior.id === displayBehaviorId ? 'active' : ''} ${userVotes[behavior.id] ? 'voted' : ''}`}
+                  onClick={() => handleBehaviorNavigation(behavior.id)}
+                  title={behavior.scenario}
+                >
+                  {behavior.id}
+                  {userVotes[behavior.id] && (
+                    <span className={`vote-indicator ${userVotes[behavior.id]}`}>
+                      {userVotes[behavior.id] === 'red' && '🔴'}
+                      {userVotes[behavior.id] === 'amber' && '🟠'}
+                      {userVotes[behavior.id] === 'green' && '🟢'}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

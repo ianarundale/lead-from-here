@@ -1,7 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import '../styles/BehaviorCard.css';
 
 function BehaviorCard({ behavior, userVote }) {
+  const [isVoteStatsCollapsed, setIsVoteStatsCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth <= 768;
+  });
+
   // Calculate total votes
   const totalVotes = behavior.votes.red + behavior.votes.amber + behavior.votes.green;
   
@@ -39,61 +44,76 @@ function BehaviorCard({ behavior, userVote }) {
         </div>
       )}
 
-      <div className="vote-stats">
-        <h3>How People Voted</h3>
-        <div className="vote-breakdown">
-          <div className="stat red">
-            <div className="vote-info">
-              <span className="emoji">🔴</span>
-              <span className="label">Not Okay</span>
-            </div>
-            <div className="vote-details">
-              <span className="count">{behavior.votes.red}</span>
-              <span className="percentage">{getPercentage(behavior.votes.red)}%</span>
-            </div>
-            <div className="vote-bar">
-              <div 
-                className="bar-fill red-fill"
-                style={{ width: `${getPercentage(behavior.votes.red)}%` }}
-              ></div>
-            </div>
-          </div>
-
-          <div className="stat amber">
-            <div className="vote-info">
-              <span className="emoji">🟠</span>
-              <span className="label">It Depends</span>
-            </div>
-            <div className="vote-details">
-              <span className="count">{behavior.votes.amber}</span>
-              <span className="percentage">{getPercentage(behavior.votes.amber)}%</span>
-            </div>
-            <div className="vote-bar">
-              <div 
-                className="bar-fill amber-fill"
-                style={{ width: `${getPercentage(behavior.votes.amber)}%` }}
-              ></div>
-            </div>
-          </div>
-
-          <div className="stat green">
-            <div className="vote-info">
-              <span className="emoji">🟢</span>
-              <span className="label">Totally Fine</span>
-            </div>
-            <div className="vote-details">
-              <span className="count">{behavior.votes.green}</span>
-              <span className="percentage">{getPercentage(behavior.votes.green)}%</span>
-            </div>
-            <div className="vote-bar">
-              <div 
-                className="bar-fill green-fill"
-                style={{ width: `${getPercentage(behavior.votes.green)}%` }}
-              ></div>
-            </div>
-          </div>
+      <div className={`vote-stats ${isVoteStatsCollapsed ? 'collapsed' : ''}`}>
+        <div className="vote-stats-header">
+          <h3>How People Voted</h3>
+          <button
+            type="button"
+            className="vote-stats-toggle"
+            onClick={() => setIsVoteStatsCollapsed(prev => !prev)}
+            aria-expanded={!isVoteStatsCollapsed}
+          >
+            {isVoteStatsCollapsed ? 'Show' : 'Hide'}
+          </button>
         </div>
-        <p className="total-votes">Total votes: {totalVotes}</p>
+
+        {!isVoteStatsCollapsed && (
+          <>
+            <div className="vote-breakdown">
+              <div className="stat red">
+                <div className="vote-info">
+                  <span className="emoji">🔴</span>
+                  <span className="label">Not Okay</span>
+                </div>
+                <div className="vote-details">
+                  <span className="count">{behavior.votes.red}</span>
+                  <span className="percentage">{getPercentage(behavior.votes.red)}%</span>
+                </div>
+                <div className="vote-bar">
+                  <div 
+                    className="bar-fill red-fill"
+                    style={{ width: `${getPercentage(behavior.votes.red)}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              <div className="stat amber">
+                <div className="vote-info">
+                  <span className="emoji">🟠</span>
+                  <span className="label">It Depends</span>
+                </div>
+                <div className="vote-details">
+                  <span className="count">{behavior.votes.amber}</span>
+                  <span className="percentage">{getPercentage(behavior.votes.amber)}%</span>
+                </div>
+                <div className="vote-bar">
+                  <div 
+                    className="bar-fill amber-fill"
+                    style={{ width: `${getPercentage(behavior.votes.amber)}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              <div className="stat green">
+                <div className="vote-info">
+                  <span className="emoji">🟢</span>
+                  <span className="label">Totally Fine</span>
+                </div>
+                <div className="vote-details">
+                  <span className="count">{behavior.votes.green}</span>
+                  <span className="percentage">{getPercentage(behavior.votes.green)}%</span>
+                </div>
+                <div className="vote-bar">
+                  <div 
+                    className="bar-fill green-fill"
+                    style={{ width: `${getPercentage(behavior.votes.green)}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+            <p className="total-votes">Total votes: {totalVotes}</p>
+          </>
+        )}
       </div>
     </div>
   );
