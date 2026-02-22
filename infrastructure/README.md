@@ -1,26 +1,20 @@
 # Infrastructure
 
-This project now deploys serverless infrastructure with SST.
-
-## Source of Truth
-
-- SST app config: `sst.config.ts`
-- OIDC bootstrap stack: `infrastructure/github-oidc.yml`
+Serverless infrastructure managed by [SST](https://sst.dev). The source of truth is `sst.config.ts` in the repo root.
 
 ## Architecture
 
-SST provisions, per stage:
-- `Dynamo` connections table (TTL on `expiresAt`)
-- `Dynamo` voting state table
-- WebSocket API Gateway routes: `$connect`, `$disconnect`, `$default`
-- HTTP API Gateway routes: `GET /reset`, `GET /status`
-- Lambda WebSocket handler: `lambda/index.handler`
-- Lambda REST handler: `lambda/index.restHandler`
-- Static site deployment for `client/` with CloudFront URL output
+Per stage, SST provisions:
 
-## Bootstrap (one-time)
+- **DynamoDB** `ConnectionsTable` — active WebSocket connections (TTL on `expiresAt`)
+- **DynamoDB** `VotingStateTable` — persisted voting state
+- **API Gateway WebSocket** — routes `$connect`, `$disconnect`, `$default` → `lambda/index.handler`
+- **API Gateway HTTP** — routes `GET /reset`, `GET /status` → `lambda/index.restHandler`
+- **CloudFront + S3** — React client static site
 
-Deploy OIDC role stack once:
+## One-time bootstrap
+
+Deploy the OIDC role stack once to allow GitHub Actions to assume an AWS role:
 
 ```bash
 aws cloudformation deploy \
@@ -31,40 +25,34 @@ aws cloudformation deploy \
   --parameter-overrides \
     GitHubOwner=<your-github-owner> \
     GitHubRepo=lead-from-here \
-    RoleName=github-actions-lead-from-here \
-    StackName=lead-from-here-prod \
-    AWSRegion=eu-west-1 \
-    S3BucketName=<placeholder-or-existing-bucket-name> \
-    EBApplicationName=lead-from-here \
-    EBEnvironmentName=lead-from-here-prod
+    RoleName=github-actions-lead-from-here
 ```
 
-## GitHub Actions Deployment
+## GitHub Actions deployment
 
 Workflow: `.github/workflows/deploy.yml`
 
 On push to `main` or `serverless`, it:
 1. Installs root + client dependencies
-2. Lints/tests React app
+2. Lints the React app
 3. Assumes AWS role via OIDC
 4. Runs `npx sst install`
-5. Runs `npx sst deploy --stage <sanitized-branch-name>`
+5. Runs `npx sst deploy --stage <sanitised-branch-name>`
 
-## Local Commands
+Stage names are derived from branch names (lowercase alphanumerics and dashes).
+
+## Useful commands
 
 ```bash
-# Install providers and diff changes
-npx sst install
-npx sst diff --stage serverless
+# Start local dev (Lambda runs locally, invoked via real API Gateway)
+npx sst dev --stage <name> --mode basic
 
-# Deploy manually to a stage
-npx sst deploy --stage serverless
+# Preview infrastructure changes
+npx sst diff --stage <name>
 
-# Remove a stage
-npx sst remove --stage serverless
+# Deploy manually
+npx sst deploy --stage <name>
+
+# Tear down a stage
+npx sst remove --stage <name>
 ```
-
-## Notes
-
-- Stage names are derived from branch names and sanitized to lowercase alphanumerics and dashes.
-- Existing `infrastructure/serverless.yml` is legacy and no longer used by the GitHub deploy workflow.

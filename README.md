@@ -1,172 +1,99 @@
-# lead-from-here
-
-
 # Lead From Here
 
-Interactive real-time voting application for assessing leadership behaviors. Multiple users can connect simultaneously and vote on whether displayed behaviors are appropriate, need context, or cross a line.
+Interactive real-time voting application for leadership behaviour assessment. Multiple participants connect simultaneously and vote on whether displayed scenarios are appropriate, need context, or cross a line.
 
 ## Features
 
-- ✅ Real-time synchronized voting across multiple browsers using WebSocket
-- ✅ Three-option voting system:
-  - 🔴 Red - Not okay. Crosses a line.
-  - 🟠 Amber - It depends. Needs context or a conversation.
-  - 🟢 Green - Totally fine
-- ✅ Live vote count updates
-- ✅ Multiple behavior scenarios
-- ✅ Responsive design for mobile and desktop
-- ✅ Beautiful gradient UI with smooth animations
+- Real-time voting across multiple browsers via WebSocket
+- Three-option voting: 🔴 Not okay · 🟠 It depends · 🟢 Totally fine
+- Facilitator controls: reset votes, toggle sync mode
+- Voting state persisted in DynamoDB — survives Lambda cold starts
+- Serverless: no servers to manage, scales to zero
 
-## Technology Stack
+## Architecture
 
-**Frontend:**
-- React 18
-- WebSocket client for real-time communication
-- CSS3 with animations and responsive design
-
-**Backend:**
-- Node.js + Express
-- WebSocket server (ws library) for real-time sync
-- REST API for behavior management
-
-## Installation & Setup
-
-### Prerequisites
-- Node.js (v14 or higher)
-- npm or yarn
-
-### 1. Install All Dependencies
-
-From the root directory:
-
-```bash
-npm run install:all
+```
+Client (React + CloudFront)
+    │
+    ├── WebSocket ──► API Gateway WebSocket ──► Lambda (lambda/index.handler)
+    │                                                │
+    └── HTTPS ──────► API Gateway HTTP ─────► Lambda (lambda/index.restHandler)
+                                                     │
+                                               DynamoDB
+                                               ├── ConnectionsTable
+                                               └── VotingStateTable
 ```
 
-This will install dependencies for the root, server, and client.
-
-### 2. Start the Application
-
-From the root directory:
-
-```bash
-npm run dev
-```
-
-This starts both the server (port 5000) and client (port 3000) concurrently.
-
-**Alternatively, run them separately:**
-
-Terminal 1 - Start the server:
-```bash
-cd server
-npm run dev
-```
-
-Terminal 2 - Start the React app:
-```bash
-cd client
-npm start
-```
-
-### 3. Open in Browser
-
-- Client: http://localhost:3000
-- Server API: http://localhost:5000
-
-## How to Use
-
-1. **Open the application** in your browser
-2. **Share the URL** with other participants (they can open http://localhost:3000)
-3. **View the behavior** displayed in the main card
-4. **Click a voting button** to cast your vote:
-   - 🔴 for "Not Okay"
-   - 🟠 for "It Depends"
-   - 🟢 for "Totally Fine"
-5. **Watch the vote counts update in real-time** as others vote
-6. **Switch behaviors** using the buttons at the bottom
-7. **Reflect on the results** using the discussion prompts from the PowerPoint presentation
-
-## API Endpoints
-
-Replace with `http://localhost:8080` for local development.
-
-### Get deployment version
-
-```bash
-curl http://localhost:8080/status
-```
-
-### Reset all votes
-
-Resets all vote counts to zero, clears individual user votes, and sets the current behavior back to 1. Broadcasts the reset to all connected WebSocket clients.
-
-```bash
-curl http://localhost:8080/reset
-```
-
-### Get current voting state
-
-```bash
-curl http://localhost:8080/api/state
-```
-
-### Get all behaviors
-
-```bash
-curl http://localhost:8080/api/behaviors
-```
-
-### Add a new behavior
-
-```bash
-curl -X POST http://localhost:8080/api/behaviors \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Behavior Title",
-    "description": "Description of the behavior"
-  }'
-```
+**Infrastructure:** managed by [SST](https://sst.dev) (`sst.config.ts`)
 
 ## Project Structure
 
 ```
 lead-from-here/
-├── server/
-│   ├── index.js           # Express + WebSocket server
+├── lambda/
+│   ├── index.js          # Lambda handlers (WebSocket + REST)
+│   ├── scenarios.json    # Behaviour scenarios data
 │   └── package.json
 ├── client/
 │   ├── src/
-│   │   ├── components/
-│   │   │   ├── BehaviorCard.js
-│   │   │   └── VotingPanel.js
-│   │   ├── styles/
-│   │   │   ├── BehaviorCard.css
-│   │   │   └── VotingPanel.css
 │   │   ├── App.js
-│   │   ├── App.css
-│   │   ├── index.js
-│   │   └── index.css
-│   ├── public/
-│   │   └── index.html
+│   │   └── components/
 │   └── package.json
-├── package.json           # Root package with dev scripts
-└── README.md
+├── infrastructure/
+│   ├── github-oidc.yml   # OIDC bootstrap (one-time setup)
+│   └── README.md
+├── sst.config.ts         # Infrastructure definition
+└── scenarios.json        # Source of truth for scenarios
 ```
 
-## Development Notes
+## Local Development
 
-- The WebSocket connection is established automatically when the client loads
-- Vote data is stored in-memory on the server (resets on server restart)
-- The app is mobile-responsive
-- All votes are broadcast to all connected clients in real-time
+Uses [SST dev mode](https://sst.dev/docs/live-lambda-development) — Lambda code runs locally but is invoked via the real AWS API Gateway.
 
-## Future Enhancements
+```bash
+npm install
+npx sst dev --stage <your-name> --mode basic
+```
 
-- Persist voting data to a database
-- Add user authentication
-- Display voting statistics and charts
-- Add a presenter/facilitator mode
-- Export voting results
-- Add discussion threading
-- Support for custom scenarios
+To also run the React dev server:
+
+```bash
+cd client && npm install && npm start
+```
+
+Set `REACT_APP_WS_URL` in `client/.env.local` to the WebSocket URL printed by `sst dev`.
+
+## Scenarios
+
+Edit `scenarios.json` to change the behaviour scenarios shown in the app. The Lambda reads from its own copy at `lambda/scenarios.json` — keep both in sync, or consider making `lambda/scenarios.json` a symlink.
+
+## API Endpoints
+
+These are available on the REST API URL printed by `sst dev` / `sst deploy`.
+
+| Endpoint | Description |
+|---|---|
+| `GET /status` | Returns `{ version }` |
+| `GET /reset` | Resets all votes and broadcasts to connected clients |
+
+WebSocket messages (send to the WebSocket URL):
+
+| Type | Payload | Description |
+|---|---|---|
+| `CLIENT_CONNECT` | `{ userId }` | Identify the client, receive `INITIAL_STATE` |
+| `VOTE` | `{ behaviorId, vote, userId }` | Cast a vote (`red`/`amber`/`green`) |
+| `SET_BEHAVIOR` | `{ behaviorId }` | Navigate to a scenario (broadcast in sync mode) |
+| `TOGGLE_SYNC` | — | Toggle sync/independent navigation mode |
+| `RESET_VOTES` | `{ behaviorId }` | Reset votes for one scenario |
+
+## Deployment
+
+Deployed via GitHub Actions on push to `main` or `serverless`. See [infrastructure/README.md](./infrastructure/README.md) for setup.
+
+```bash
+# Manual deploy
+npx sst deploy --stage production
+
+# Tear down a stage
+npx sst remove --stage <stage>
+```

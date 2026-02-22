@@ -1,7 +1,7 @@
 # Dependencies
 node_modules/
 client/node_modules/
-server/node_modules/
+lambda/node_modules/
 
 # Build output
 client/build/
@@ -29,7 +29,6 @@ Thumbs.db
 
 # Workshop materials
 *.pptx
-"scenarios copy.json"
 
 .sst/
 sst-env.d.ts

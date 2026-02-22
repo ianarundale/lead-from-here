@@ -1,100 +1,58 @@
-# 🚀 Quick Start Guide - Lead From Here
+# Quick Start
 
-## What You Have
+## Prerequisites
 
-A fully functional, real-time collaborative voting application with:
-- **React Frontend**: Beautiful, responsive UI with gradient design
-- **Node.js/Express Backend**: WebSocket server for real-time synchronization
-- **Live Voting**: See votes update across all browsers instantly
+- Node.js 18+ and npm
+- AWS CLI configured (`aws sts get-caller-identity` should return your account)
+- SST CLI (installed via `npm install` in the root)
 
-## Getting Started (3 simple steps)
+## 1. Install dependencies
 
-### 1. Open the Terminal in VS Code
-- Press `Ctrl+` (or `Cmd+`` on Mac) to open the integrated terminal
-- Make sure you're in the project root directory
-
-### 2. Start the Application
-Run this command:
 ```bash
-/opt/homebrew/bin/npm run dev
+npm install
+cd client && npm install && cd ..
+cd lambda && npm install && cd ..
 ```
 
-**Or use the VS Code Task:**
-- Press `Cmd+Shift+B` (Mac) or `Ctrl+Shift+B` (Windows/Linux)
-- Select "Start Lead From Here (Full Stack)"
+## 2. Start dev mode
 
-Wait about 30 seconds for both servers to start. You'll see:
-```
-Server running on port 5000
-Compiled successfully!
-```
-
-### 3. Open in Browser
-- **Client**: Open http://localhost:3000
-- **Test real-time sync**: Open the same URL in 2-3 different browser tabs or windows
-- **Vote on behaviors**: Click the 🔴 🟠 🟢 buttons and watch votes update across all windows!
-
-## Features to Try
-
-1. **Vote on Behaviors** - Click any of the three emoji buttons
-2. **See Live Updates** - Votes sync instantly across all open windows
-3. **Switch Behaviors** - Click the "Behavior" buttons at the bottom to switch scenarios
-4. **Real-time Collaboration** - Open multiple tabs to simulate group voting
-
-## Next Steps
-
-### Add Your Own Behaviors
-The PowerPoint has example behaviors. To add custom scenarios:
-
-**Option A: Add via API**
 ```bash
-curl -X POST http://localhost:5000/api/behaviors \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Your Behavior Title",
-    "description": "Description of the behavior"
-  }'
+npx sst dev --stage <your-name> --mode basic
 ```
 
-**Option B: Edit the code**
-Edit [server/index.js](./server/index.js) and update the `votingState.behaviors` array
+SST will deploy a personal stack and start intercepting Lambda invocations locally. When ready it prints your live endpoints:
 
-### Use During a Workshop
-1. Start the app with `npm run dev`
-2. Share http://localhost:3000 with participants (on same network)
-3. Display the app on a projector for everyone to see
-4. Participants vote from their devices
-5. Watch behavior voting patterns emerge in real-time!
+```
+RestApi:      https://xxxx.execute-api.eu-west-1.amazonaws.com
+WebSocketApi: wss://yyyy.execute-api.eu-west-1.amazonaws.com/$default
+```
 
-## Stopping the Application
-- Press `Ctrl+C` in the terminal (or click the trash icon in VS Code's terminal)
+## 3. Connect the React client
 
-## Troubleshooting
+Create `client/.env.local`:
 
-**Port already in use?**
-- Server: Change port in [server/index.js](./server/index.js) line with `const PORT`
-- Client: Change port in [client/package.json](./client/package.json) by adding `"PORT=3001"` before `react-scripts start`
+```
+REACT_APP_WS_URL=wss://yyyy.execute-api.eu-west-1.amazonaws.com/$default
+```
 
-**Dependencies not installed?**
+Then start the client:
+
 ```bash
-/opt/homebrew/bin/npm run install:all
+cd client && npm start
 ```
 
-**Need to restart?**
-1. Stop the app (Ctrl+C)
-2. Run: `/opt/homebrew/bin/npm run dev`
+Open http://localhost:3000 in multiple tabs to test real-time voting.
 
-## Project Structure
+## Workshop usage
+
+1. Deploy to a shared stage: `npx sst deploy --stage workshop`
+2. Share the CloudFront URL (printed as `frontendUrl`) with participants
+3. Use `GET /reset` to clear votes between scenarios
+
+## Stopping / cleaning up
+
+Press `Ctrl+C` to stop dev mode. The AWS resources remain until you remove them:
+
+```bash
+npx sst remove --stage <your-name>
 ```
-lead-from-here/
-├── server/           # Node.js backend with WebSocket
-├── client/           # React frontend
-├── package.json      # Root configuration
-└── README.md         # Full documentation
-```
-
----
-
-**Happy facilitating! 🎯**
-
-For more details, see the full [README.md](./README.md)
