@@ -5,10 +5,7 @@ import BehaviorCard from './components/BehaviorCard';
 
 function App() {
   const [presentationMode, setPresentationMode] = useState(false);
-  const [isScenarioNavCollapsed, setIsScenarioNavCollapsed] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.innerWidth <= 768;
-  });
+  const [isScenarioNavCollapsed, setIsScenarioNavCollapsed] = useState(true);
   const [votingState, setVotingState] = useState({
     behaviors: [],
     currentBehaviorId: 1,
@@ -101,17 +98,6 @@ function App() {
     };
   }, [userId]);
 
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth > 768) {
-        setIsScenarioNavCollapsed(false);
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   // Use local behavior ID in independent mode, server's in sync mode
   const displayBehaviorId = localBehaviorId;
   const currentBehavior = votingState.behaviors.find(
@@ -194,8 +180,7 @@ function App() {
       <header className="app-header">
         <div className="top-status-bar">
           <div className="header-brand">
-            <h1>🎯 Lead From Here v2</h1>
-            <p>Interactive Leadership Behavior Assessment</p>
+            <h1>🎯 Lead From Here</h1>
           </div>
           <div className="status-controls">
             <div className="connected-users-badge" aria-live="polite">
