@@ -26,11 +26,27 @@ function App() {
   useEffect(() => {
     // Connect to WebSocket server
     const getWebSocketUrl = () => {
+      const normalizeWebSocketUrl = (url) => {
+        try {
+          const parsed = new URL(url, window.location.origin);
+          if (
+            parsed.hostname.includes('.execute-api.') &&
+            (parsed.pathname === '' || parsed.pathname === '/')
+          ) {
+            parsed.pathname = '/$default';
+          }
+          return parsed.toString();
+        } catch {
+          return url;
+        }
+      };
+
       const wsUrl = process.env.REACT_APP_WS_URL?.trim();
-      if (!wsUrl) {
-        throw new Error('REACT_APP_WS_URL is not set');
+      if (wsUrl) {
+        return normalizeWebSocketUrl(wsUrl);
       }
-      return wsUrl;
+
+      return normalizeWebSocketUrl('ws://localhost:8080');
     };
 
     const websocket = new WebSocket(getWebSocketUrl());
@@ -114,7 +130,7 @@ function App() {
     <div className="App">
       <header className="app-header">
         <div className="header-top">
-          <h1>🎯 Lead From Here</h1>
+          <h1>🎯 Lead From Here 3</h1>
           <div className="sync-toggle">
             <label>
               <input
