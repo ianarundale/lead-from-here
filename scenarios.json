@@ -1,5 +1,5 @@
 {
-  "title": "What’s Okay for Someone in Authority to Ask?",
+  "title": "What's Okay for Someone in Authority to Ask?",
   "legend": {
     "red": "Not okay. Crosses a line.",
     "amber": "It depends. Needs context or a conversation.",
@@ -7,58 +7,73 @@
   },
   "scenarios": [
     {
-      "scenario": "Someone senior asks you to grab them lunch while you’re out getting your own.",
+      "scenario": "A manager tells a team member they can't take a day's annual leave during a busy period, but books their own holiday for the same week without explanation.",
       "prompts": [
-        "Does this feel friendly and mutual, or does it make you feel like “the help”?",
-        "Would your answer change if it happened regularly?"
+        "Is it ever acceptable for leaders to hold themselves to a different standard — and how should this be communicated?",
+        "How would you raise this concern without it feeling like a personal attack?"
       ]
     },
     {
-      "scenario": "At 6 p.m., someone in a position of authority messages: “Can you rework these slides tonight so we’re ready for the 9 a.m. exec review?”",
+      "scenario": "During a team away-day, a senior leader makes a joke at the expense of a colleague's accent. Everyone laughs awkwardly. Afterwards, the colleague says they found it uncomfortable.",
       "prompts": [
-        "When is this fair teamwork under pressure — and when does it become poor planning or boundary overreach?"
+        "What responsibility does the rest of the team have in the moment — and afterwards?",
+        "How should a leader respond if this is raised with them directly?"
       ]
     },
     {
-      "scenario": "After a workshop, someone senior asks you to tidy the room, collect Post-its, and take out the rubbish while they rush to another meeting.",
+      "scenario": "A line manager shares a team member's personal situation — that they're going through a divorce — with the wider team, saying it's 'so people know why they seem distracted lately.'",
       "prompts": [
-        "Is this shared responsibility, or is hierarchy showing through?",
-        "What’s the right way to handle moments like this?"
+        "Even when the intention is supportive, where is the line between context and confidentiality?",
+        "What should the team member do if they find out their information was shared without consent?"
       ]
     },
     {
-      "scenario": "A senior colleague asks you to book a restaurant for their anniversary or collect a parcel that was delivered to the office.",
+      "scenario": "In a one-to-one, a manager gives a junior colleague consistently critical feedback but never acknowledges what's going well. The colleague starts dreading their weekly meetings.",
       "prompts": [
-        "This one’s outside the job description — but would you still feel able to say no?",
-        "What’s the risk if you say yes?"
+        "What makes feedback feel fair and constructive rather than demoralising?",
+        "How might the manager be unaware of the impact they're having — and how could this be raised?"
       ]
     },
     {
-      "scenario": "You get a message on Saturday: “Can you just check that the homepage metrics updated?”",
+      "scenario": "A senior colleague regularly interrupts and talks over a quieter team member in meetings, while crediting their ideas to others — sometimes without realising it.",
       "prompts": [
-        "Is it okay if it’s a one-off?",
-        "Where should we draw the line between flexibility and respecting downtime?"
+        "What's the difference between an occasional slip and a pattern that needs addressing?",
+        "What can bystanders do to create fairer space in the room without embarrassing anyone?"
       ]
     },
     {
-      "scenario": "Someone senior says: “I trust you to own this one fully.”",
+      "scenario": "A team leader asks only the most junior members of the team to stay late to fix a problem caused by a more senior colleague's error, without acknowledging where the mistake came from.",
       "prompts": [
-        "When does this feel empowering — and when does it feel like being set up to take the blame?",
-        "What does true ownership look like?"
+        "When does workload distribution become unfair, and who is responsible for calling it out?",
+        "How should accountability be handled when seniority and responsibility don't line up?"
       ]
     },
     {
-      "scenario": "You’re asked to represent a senior colleague in a meeting and speak on their behalf.",
+      "scenario": "Someone raises a concern about a process in a team meeting. Their manager responds: 'Let's not go there today' and moves on. The issue is never followed up.",
       "prompts": [
-        "A great growth opportunity or an uncomfortable substitute?",
-        "What needs to be in place for this to feel safe and empowering?"
+        "What does psychological safety actually look like — and what does it look like when it's absent?",
+        "What options does someone have when they feel their concerns are being brushed aside?"
       ]
     },
     {
-      "scenario": "Someone in a position of hierarchy tells you to keep quiet about a decision that directly affects your peers.",
+      "scenario": "A manager gives a stretch project to the same two or three people every time, saying they're 'the ones they can rely on.' Others feel overlooked and stuck.",
       "prompts": [
-        "Is that trust and discretion, or manipulation and secrecy?",
-        "How do you know when it crosses the line?"
+        "How can favouritism — even well-intentioned — undermine team morale and development?",
+        "What's a fair way to allocate growth opportunities across a team?"
+      ]
+    },
+    {
+      "scenario": "A leader asks a team member to document a process 'for your own benefit' but it becomes clear the work is actually for the team's knowledge base. No credit or recognition is given.",
+      "prompts": [
+        "How transparent should leaders be about the real purpose of tasks they assign?",
+        "What's the impact on trust when someone feels they've been misled, even about a small thing?"
+      ]
+    },
+    {
+      "scenario": "After a restructure, a manager tells their team 'nothing is changing for you' — but over the following months, roles quietly shift, responsibilities expand, and salaries stay the same.",
+      "prompts": [
+        "What does honest, accountable communication from a leader look like during organisational change?",
+        "At what point does 'making the best of it' become an unreasonable expectation of staff?"
       ]
     }
   ]
