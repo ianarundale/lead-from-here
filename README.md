@@ -43,7 +43,6 @@ lead-from-here/
 │   ├── github-oidc.yml   # OIDC bootstrap (one-time setup)
 │   └── README.md
 ├── sst.config.ts         # Infrastructure definition
-└── scenarios.json        # Source of truth for scenarios
 ```
 
 ## Local Development
@@ -65,7 +64,7 @@ Set `REACT_APP_WS_URL` in `client/.env.local` to the WebSocket URL printed by `s
 
 ## Scenarios
 
-Edit `scenarios.json` to change the behaviour scenarios shown in the app. The Lambda reads from its own copy at `lambda/scenarios.json` — keep both in sync, or consider making `lambda/scenarios.json` a symlink.
+Edit `lambda/scenarios.json` to change the behaviour scenarios shown in the app.
 
 ## API Endpoints
 
