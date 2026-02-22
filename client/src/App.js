@@ -65,6 +65,15 @@ function App() {
       
       if (message.type === 'INITIAL_STATE' || message.type === 'STATE_UPDATE' || message.type === 'BEHAVIOR_CHANGED') {
         setVotingState(message.data);
+        if (message.type === 'INITIAL_STATE') {
+          const restoredVotes = {};
+          message.data.behaviors.forEach(b => {
+            if (b.userVotes && b.userVotes[userId]) {
+              restoredVotes[b.id] = b.userVotes[userId];
+            }
+          });
+          setUserVotes(restoredVotes);
+        }
         // In sync mode, sync the local behavior ID with server
         if (message.data.syncMode) {
           setLocalBehaviorId(message.data.currentBehaviorId);
