@@ -418,6 +418,31 @@
   min-width: 0;
 }
 
+.presenter-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.25rem;
+  padding-bottom: 0.35rem;
+}
+
+.presenter-reset-link {
+  color: rgba(232, 236, 255, 0.84);
+  font-size: 0.82rem;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  cursor: pointer;
+  transition: color 0.18s ease, opacity 0.18s ease;
+}
+
+.presenter-reset-link:hover {
+  color: #ffffff;
+}
+
+.presenter-reset-link.disabled {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
 @media (min-width: 1024px) {
   .content-layout {
     grid-template-columns: minmax(0, 1.65fr) minmax(300px, 0.85fr);
@@ -484,6 +509,11 @@
 
   .content-layout.presentation-mode {
     gap: 0.85rem;
+  }
+
+  .presenter-footer {
+    margin-top: 0.9rem;
+    padding-bottom: 0.15rem;
   }
 
   .content-layout:not(.presentation-mode) .voting-panel-column {

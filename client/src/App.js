@@ -19,6 +19,7 @@ function App() {
   const [userVotes, setUserVotes] = useState({}); // Track user's votes: { behaviorId: 'red'/'amber'/'green' }
   const [hasVoted, setHasVoted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isResetting, setIsResetting] = useState(false);
   const [ws, setWs] = useState(null);
   const [userId] = useState(() => {
     // Generate or retrieve a user ID for this session
@@ -154,6 +155,33 @@ function App() {
     }
   };
 
+  const handleResetData = async (event) => {
+    event.preventDefault();
+    if (isResetting) return;
+
+    const backendUrl = process.env.REACT_APP_BACKEND_URL?.trim();
+    if (!backendUrl) {
+      alert('Reset endpoint is not configured.');
+      return;
+    }
+
+    const resetUrl = `${backendUrl.replace(/\/$/, '')}/reset`;
+
+    try {
+      setIsResetting(true);
+      const response = await fetch(resetUrl, { method: 'GET' });
+      if (!response.ok) {
+        throw new Error(`Request failed (${response.status})`);
+      }
+      alert('Data has been reset.');
+    } catch (error) {
+      console.error('Reset failed:', error);
+      alert('Failed to reset data. Please try again.');
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
     <div className="App">
       <header className="app-header">
@@ -261,26 +289,40 @@ function App() {
         </div>
 
         {currentBehavior && (
-          <div className={`content-layout ${presentationMode ? 'presentation-mode' : ''}`}>
-            <BehaviorCard 
-              behavior={currentBehavior} 
-              userVote={userVoteForCurrentBehavior}
-              presentationMode={presentationMode}
-              canToggleScenarioNav={!presentationMode}
-              isScenarioNavExpanded={!isScenarioNavCollapsed}
-              onToggleScenarioNav={() => setIsScenarioNavCollapsed(prev => !prev)}
-            />
-            {!presentationMode && (
-              <div className="voting-panel-column">
-                <VotingPanel
-                  behavior={currentBehavior}
-                  onVote={handleVote}
-                  hasVoted={hasVoted}
-                  userVote={userVoteForCurrentBehavior}
-                />
+          <>
+            <div className={`content-layout ${presentationMode ? 'presentation-mode' : ''}`}>
+              <BehaviorCard 
+                behavior={currentBehavior} 
+                userVote={userVoteForCurrentBehavior}
+                presentationMode={presentationMode}
+                canToggleScenarioNav={!presentationMode}
+                isScenarioNavExpanded={!isScenarioNavCollapsed}
+                onToggleScenarioNav={() => setIsScenarioNavCollapsed(prev => !prev)}
+              />
+              {!presentationMode && (
+                <div className="voting-panel-column">
+                  <VotingPanel
+                    behavior={currentBehavior}
+                    onVote={handleVote}
+                    hasVoted={hasVoted}
+                    userVote={userVoteForCurrentBehavior}
+                  />
+                </div>
+              )}
+            </div>
+            {presentationMode && (
+              <div className="presenter-footer">
+                <a
+                  href={`${(process.env.REACT_APP_BACKEND_URL || '').replace(/\/$/, '')}/reset`}
+                  onClick={handleResetData}
+                  className={`presenter-reset-link ${isResetting ? 'disabled' : ''}`}
+                  aria-disabled={isResetting}
+                >
+                  {isResetting ? 'Resetting data…' : 'Reset all voting data'}
+                </a>
               </div>
             )}
-          </div>
+          </>
         )}
       </main>
     </div>

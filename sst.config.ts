@@ -86,6 +86,7 @@ export default $config({
       path: "client",
       environment: {
         REACT_APP_WS_URL: websocketUrl,
+        REACT_APP_BACKEND_URL: restApi.url,
       },
       build: {
         command: "npm run build",

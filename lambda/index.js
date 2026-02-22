@@ -276,10 +276,23 @@ async function handleMessage(connectionId, body) {
 export const restHandler = async (event) => {
   const httpMethod = event?.requestContext?.http?.method || event?.httpMethod;
   const path = event?.rawPath || event?.path;
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  };
 
   console.log('REST Event:', JSON.stringify(event));
 
   try {
+    if (httpMethod === 'OPTIONS') {
+      return {
+        statusCode: 204,
+        headers: corsHeaders,
+        body: ''
+      };
+    }
+
     if (path === '/reset' && httpMethod === 'GET') {
       const votingState = getDefaultState();
       await saveVotingState(votingState);
@@ -289,7 +302,7 @@ export const restHandler = async (event) => {
 
       return {
         statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify({ success: true, message: 'All votes have been reset' })
       };
     }
@@ -297,14 +310,14 @@ export const restHandler = async (event) => {
     if (path === '/status' && httpMethod === 'GET') {
       return {
         statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify({ version: process.env.DEPLOY_VERSION || 'dev' })
       };
     }
 
-    return { statusCode: 404, body: 'Not found' };
+    return { statusCode: 404, headers: corsHeaders, body: 'Not found' };
   } catch (error) {
     console.error('REST handler error:', error);
-    return { statusCode: 500, body: 'Internal error' };
+    return { statusCode: 500, headers: corsHeaders, body: 'Internal error' };
   }
 };
