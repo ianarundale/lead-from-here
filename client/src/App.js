@@ -159,6 +159,13 @@ function App() {
     event.preventDefault();
     if (isResetting) return;
 
+    const confirmed = window.confirm(
+      'Reset all voting data for everyone? This cannot be undone.'
+    );
+    if (!confirmed) {
+      return;
+    }
+
     const backendUrl = process.env.REACT_APP_BACKEND_URL?.trim();
     if (!backendUrl) {
       alert('Reset endpoint is not configured.');
@@ -186,10 +193,14 @@ function App() {
     <div className="App">
       <header className="app-header">
         <div className="top-status-bar">
-          <div className="connected-users-badge" aria-live="polite">
-            👥 {votingState.connectedUsers || 0} connected
+          <div className="header-brand">
+            <h1>🎯 Lead From Here v2</h1>
+            <p>Interactive Leadership Behavior Assessment</p>
           </div>
           <div className="status-controls">
+            <div className="connected-users-badge" aria-live="polite">
+              👥 {votingState.connectedUsers || 0} connected
+            </div>
             <button
               type="button"
               className={`presentation-toggle ${presentationMode ? 'active' : ''}`}
@@ -199,30 +210,8 @@ function App() {
             >
               {presentationMode ? '📺 Presentation On' : '📺 Presentation'}
             </button>
-            <div className="sync-toggle">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={votingState.syncMode}
-                  onChange={() => {
-                    if (ws && ws.readyState === WebSocket.OPEN) {
-                      ws.send(JSON.stringify({
-                        type: 'TOGGLE_SYNC'
-                      }));
-                    }
-                  }}
-                />
-                <span className="toggle-label">
-                  {votingState.syncMode ? "🔗 Sync'd" : '👤 Independent'}
-                </span>
-              </label>
-            </div>
           </div>
         </div>
-        <div className="header-top">
-          <h1>🎯 Lead From Here v2</h1>
-        </div>
-        <p>Interactive Leadership Behavior Assessment</p>
       </header>
 
       <main className={`app-main ${currentBehavior && !presentationMode ? 'has-mobile-voter-panel' : ''}`}>
