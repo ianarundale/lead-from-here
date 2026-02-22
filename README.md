@@ -61,7 +61,7 @@ To also run the React dev server:
 cd client && npm install && npm start
 ```
 
-Set `REACT_APP_WS_URL` in `client/.env.local` to the WebSocket URL printed by `sst dev`.
+Set `REACT_APP_WS_URL` in `client/.env.local` to the WebSocket URL printed by `sst dev`. Use `\$default` (backslash-escaped) — `dotenv` treats `$` as a variable interpolation prefix and will silently strip `$default` otherwise.
 
 ## Scenarios
 

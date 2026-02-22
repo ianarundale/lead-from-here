@@ -32,8 +32,11 @@ WebSocketApi: wss://yyyy.execute-api.eu-west-1.amazonaws.com/$default
 Create `client/.env.local`:
 
 ```
-REACT_APP_WS_URL=wss://yyyy.execute-api.eu-west-1.amazonaws.com/$default
+REACT_APP_WS_URL=wss://yyyy.execute-api.eu-west-1.amazonaws.com/\$default
+REACT_APP_BACKEND_URL=https://xxxx.execute-api.eu-west-1.amazonaws.com
 ```
+
+> **Note:** The `\$` before `default` is required. `dotenv` treats `$` as a variable interpolation prefix, so `$default` would silently expand to an empty string, giving the wrong URL. The backslash escapes it to a literal `$`.
 
 Then start the client:
 
