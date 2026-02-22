@@ -26,24 +26,11 @@ function App() {
   useEffect(() => {
     // Connect to WebSocket server
     const getWebSocketUrl = () => {
-      // First check for explicit WebSocket URL (serverless)
       const wsUrl = process.env.REACT_APP_WS_URL?.trim();
-      if (wsUrl) {
-        return wsUrl;
+      if (!wsUrl) {
+        throw new Error('REACT_APP_WS_URL is not set');
       }
-
-      // Fall back to backend URL (legacy EB setup)
-      const configuredBackendUrl = process.env.REACT_APP_BACKEND_URL?.trim();
-      const backendUrl = configuredBackendUrl || (
-        // Local dev runs the API on port 8080; deployed env is same-origin.
-        ['localhost', '127.0.0.1'].includes(window.location.hostname)
-          ? 'http://localhost:8080'
-          : window.location.origin
-      );
-
-      const backend = new URL(backendUrl, window.location.origin);
-      const wsProtocol = backend.protocol === 'https:' ? 'wss:' : 'ws:';
-      return `${wsProtocol}//${backend.host}`;
+      return wsUrl;
     };
 
     const websocket = new WebSocket(getWebSocketUrl());

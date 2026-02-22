@@ -76,10 +76,16 @@ export default $config({
     restApi.route("GET /reset", restHandler.arn);
     restApi.route("GET /status", restHandler.arn);
 
+    // websocketApi.url omits the stage — derive the correct wss:// URL from
+    // managementEndpoint (https://.../$default) which we know is correct.
+    const websocketUrl = websocketApi.managementEndpoint.apply(
+      (endpoint) => endpoint.replace("https://", "wss://")
+    );
+
     const frontend = new sst.aws.StaticSite("Frontend", {
       path: "client",
       environment: {
-        REACT_APP_WS_URL: websocketApi.url,
+        REACT_APP_WS_URL: websocketUrl,
       },
       build: {
         command: "npm run build",
