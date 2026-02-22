@@ -14,26 +14,6 @@ Parameters:
     Type: String
     Description: Name for the IAM role
 
-  StackName:
-    Type: String
-    Description: CloudFormation stack name (for resource limits)
-
-  AWSRegion:
-    Type: String
-    Description: AWS region
-
-  S3BucketName:
-    Type: String
-    Description: Name of the S3 deployment bucket
-
-  EBApplicationName:
-    Type: String
-    Description: Name of the Elastic Beanstalk application
-
-  EBEnvironmentName:
-    Type: String
-    Description: Name of the Elastic Beanstalk environment
-
 Resources:
   # GitHub OIDC Provider
   # ThumbprintList contains the public TLS certificate thumbprint for

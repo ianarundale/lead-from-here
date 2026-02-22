@@ -88,7 +88,7 @@ WebSocket messages (send to the WebSocket URL):
 
 ## Deployment
 
-Deployed via GitHub Actions on push to `main` or `serverless`. See [infrastructure/README.md](./infrastructure/README.md) for setup.
+Deployed via GitHub Actions on push to `main` or `serverless` using SST + GitHub OIDC. The deployed stage name is derived from the branch name. See [infrastructure/README.md](./infrastructure/README.md) for setup.
 
 ```bash
 # Manual deploy

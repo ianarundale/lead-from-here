@@ -67,7 +67,7 @@ npx sst remove --stage <name>    # Tear down
 npx sst install                  # Re-run after sst.config.ts changes
 ```
 
-CI/CD deploys automatically to stage `prod` on push to `main` or `serverless` branches via GitHub Actions with OIDC (no stored credentials).
+CI/CD deploys automatically on push to `main` or `serverless` via GitHub Actions with OIDC (no stored credentials). The SST stage is derived from the branch name (currently `main` or `serverless`).
 
 ## WebSocket Message Protocol
 

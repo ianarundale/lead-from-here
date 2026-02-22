@@ -12,11 +12,14 @@ Workflow `.github/workflows/deploy.yml` deploys on push to:
 - `main`
 - `serverless`
 
-SST uses a stage derived from branch name.
+SST uses a stage derived from the branch name:
+- `main` -> stage `main`
+- `serverless` -> stage `serverless`
+- branch names with `/` or special characters are normalized to lowercase `-`
 
 ## First-Time Bootstrap
 
-Deploy OIDC stack once (existing stack can be updated in-place):
+Deploy the GitHub OIDC/IAM bootstrap stack once (existing stack can be updated in-place):
 
 ```bash
 aws cloudformation deploy \
@@ -27,12 +30,7 @@ aws cloudformation deploy \
   --parameter-overrides \
     GitHubOwner=<your-github-owner> \
     GitHubRepo=lead-from-here \
-    RoleName=github-actions-lead-from-here \
-    StackName=lead-from-here-prod \
-    AWSRegion=eu-west-1 \
-    S3BucketName=<placeholder-or-existing-bucket-name> \
-    EBApplicationName=lead-from-here \
-    EBEnvironmentName=lead-from-here-prod
+    RoleName=github-actions-lead-from-here
 ```
 
 ## What Deploys
@@ -48,13 +46,13 @@ aws cloudformation deploy \
 
 ```bash
 npx sst install
-npx sst diff --stage serverless
+npx sst diff --stage <stage>
 ```
 
 ## Troubleshooting
 
 ```bash
-# Inspect CloudFormation stacks created by SST
+# Inspect CloudFormation stacks created by SST (SST uses CloudFormation under the hood)
 aws cloudformation describe-stacks --region eu-west-1 \
   --query "Stacks[?contains(StackName, 'lead-from-here')].[StackName,StackStatus]" \
   --output table

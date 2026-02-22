@@ -37,7 +37,7 @@ On push to `main` or `serverless`, it:
 2. Lints the React app
 3. Assumes AWS role via OIDC
 4. Runs `npx sst install`
-5. Runs `npx sst deploy --stage prod`
+5. Runs `npx sst deploy --stage <normalized-branch-name>`
 
 ## SST CLI reference
 
@@ -65,8 +65,11 @@ npx sst remove --stage <name>
 ### Stages
 
 Each `--stage` is a fully independent deployment. Resources are prefixed with the stage
-name in AWS (e.g. `lead-from-here-prod-ConnectionsTable`). The production stage used by
-GitHub Actions is `prod`.
+name in AWS (e.g. `lead-from-here-main-ConnectionsTable`).
+
+GitHub Actions derives the stage from the branch name (`main` -> `main`, `serverless` ->
+`serverless`, and other branch names are lowercased/sanitized if you run the same logic
+locally).
 
 Use a personal stage name (e.g. `--stage alice`) for local testing so you don't affect
-the shared `prod` environment.
+the shared branch stages.
