@@ -84,7 +84,7 @@ function App() {
   }, [userId]);
 
   // Use local behavior ID in independent mode, server's in sync mode
-  const displayBehaviorId = votingState.syncMode ? votingState.currentBehaviorId : localBehaviorId;
+  const displayBehaviorId = localBehaviorId;
   const currentBehavior = votingState.behaviors.find(
     (b) => b.id === displayBehaviorId
   );
@@ -94,17 +94,14 @@ function App() {
     : null;
 
   const handleBehaviorNavigation = (behaviorId) => {
+    setLocalBehaviorId(behaviorId); // Always update locally for instant feedback
     if (votingState.syncMode) {
-      // In sync mode, send to server to sync all clients
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({
           type: 'SET_BEHAVIOR',
           behaviorId: behaviorId
         }));
       }
-    } else {
-      // In independent mode, just update locally
-      setLocalBehaviorId(behaviorId);
     }
   };
 
@@ -130,7 +127,7 @@ function App() {
     <div className="App">
       <header className="app-header">
         <div className="header-top">
-          <h1>🎯 Lead From Here 3</h1>
+          <h1>🎯 Lead From Here 5</h1>
           <div className="sync-toggle">
             <label>
               <input
