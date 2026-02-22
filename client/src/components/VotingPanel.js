@@ -2,9 +2,30 @@ import React from 'react';
 import '../styles/VotingPanel.css';
 
 function VotingPanel({ behavior, onVote, hasVoted, userVote }) {
+  const selectedLabel = {
+    red: 'Not Okay',
+    amber: 'It Depends',
+    green: 'Totally Fine'
+  }[userVote];
+
   return (
     <div className="voting-panel">
-      <h3>How do you feel about this behavior?</h3>
+      <div className="voting-panel-header">
+        <p className="voting-panel-eyebrow">Cast Your Vote</p>
+        <h3>How do you feel about this behavior?</h3>
+        {behavior && (
+          <p className="voting-panel-context">Scenario {behavior.id}</p>
+        )}
+        <div className="voting-panel-selection-row" aria-live="polite">
+          {userVote ? (
+            <span className={`voting-selection-pill ${userVote}`}>
+              Selected: {selectedLabel}
+            </span>
+          ) : (
+            <span className="voting-selection-pill empty">Choose one option</span>
+          )}
+        </div>
+      </div>
       <div className="voting-buttons">
         <button
           className={`vote-btn red ${userVote === 'red' ? 'selected' : ''}`}

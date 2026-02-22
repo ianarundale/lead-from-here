@@ -1,176 +1,349 @@
-/* Voting Panel Styles */
 .voting-panel {
-  background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  text-align: center;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(246, 249, 255, 0.95));
+  border: 1px solid rgba(20, 31, 74, 0.08);
+  border-radius: 22px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 18px 44px rgba(12, 19, 48, 0.16);
+  text-align: left;
+  backdrop-filter: blur(12px);
+}
+
+.voting-panel-header {
+  margin-bottom: 0.9rem;
+}
+
+.voting-panel-eyebrow {
+  margin: 0 0 0.35rem;
+  color: #5a6690;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-size: 0.68rem;
+  font-weight: 800;
 }
 
 .voting-panel h3 {
-  margin: 0 0 2rem 0;
-  color: #333;
-  font-size: 1.3rem;
+  margin: 0;
+  color: #10192f;
+  font-size: 1.02rem;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.voting-panel-context {
+  margin: 0.45rem 0 0;
+  color: #55607e;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.voting-panel-selection-row {
+  margin-top: 0.55rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.voting-selection-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  border: 1px solid rgba(35, 49, 96, 0.1);
+  background: rgba(255, 255, 255, 0.8);
+  color: #2c3752;
+  white-space: nowrap;
+}
+
+.voting-selection-pill.empty {
+  color: #64708d;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.voting-selection-pill.red {
+  color: #c62828;
+  border-color: rgba(239, 68, 68, 0.2);
+  background: rgba(254, 242, 242, 0.9);
+}
+
+.voting-selection-pill.amber {
+  color: #b86606;
+  border-color: rgba(245, 158, 11, 0.2);
+  background: rgba(255, 251, 235, 0.9);
+}
+
+.voting-selection-pill.green {
+  color: #138a42;
+  border-color: rgba(34, 197, 94, 0.2);
+  background: rgba(240, 253, 244, 0.9);
 }
 
 .voting-buttons {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1rem;
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+  margin-bottom: 0.65rem;
 }
 
 .vote-btn {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  justify-content: center;
-  padding: 1.5rem 1rem;
-  border: 2px solid transparent;
-  border-radius: 8px;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.85rem 0.85rem;
+  border: 1px solid transparent;
+  border-radius: 16px;
   font-size: 1rem;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 600;
-  min-height: 140px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  font-weight: 700;
+  min-height: 68px;
   position: relative;
+  text-align: left;
 }
 
 .vote-btn .emoji {
-  font-size: 2.5rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  margin: 0;
+  line-height: 1;
 }
 
 .vote-btn .text {
   display: block;
-  font-size: 1.1rem;
-  margin-bottom: 0.25rem;
+  font-size: 0.92rem;
+  margin: 0 0 0.15rem;
+  line-height: 1.2;
 }
 
 .vote-btn .description {
   display: block;
-  font-size: 0.8rem;
-  opacity: 0.7;
+  font-size: 0.74rem;
+  opacity: 0.85;
+  font-weight: 600;
+  line-height: 1.15;
 }
 
 .vote-btn .checkmark {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  font-size: 1.5rem;
-  animation: popIn 0.3s ease;
+  position: static;
+  width: 1.55rem;
+  height: 1.55rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  font-size: 0.9rem;
+  animation: popIn 0.22s ease;
 }
 
 @keyframes popIn {
   from {
-    transform: scale(0);
+    transform: scale(0.8);
+    opacity: 0;
   }
   to {
     transform: scale(1);
+    opacity: 1;
   }
 }
 
-/* Red Button */
+.vote-btn:hover {
+  transform: translateY(-1px);
+}
+
+.vote-btn:active {
+  transform: translateY(0);
+}
+
 .vote-btn.red {
-  background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
-  border-color: rgba(239, 68, 68, 0.3);
+  background: linear-gradient(180deg, rgba(254, 242, 242, 0.95), rgba(255, 235, 235, 0.9));
+  color: #c62828;
+  border-color: rgba(239, 68, 68, 0.2);
+  box-shadow: 0 8px 16px rgba(239, 68, 68, 0.08);
 }
 
 .vote-btn.red:hover {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: #dc2626;
-  transform: translateY(-4px);
-  box-shadow: 0 10px 20px rgba(239, 68, 68, 0.2);
-}
-
-.vote-btn.red:active {
-  transform: translateY(-2px);
+  border-color: rgba(220, 38, 38, 0.35);
+  box-shadow: 0 10px 20px rgba(239, 68, 68, 0.12);
 }
 
 .vote-btn.red.selected {
-  background: rgba(239, 68, 68, 0.25);
-  border-color: #dc2626;
-  border-width: 3px;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  border-color: rgba(220, 38, 38, 0.52);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1), 0 12px 22px rgba(239, 68, 68, 0.12);
 }
 
-/* Amber Button */
 .vote-btn.amber {
-  background: rgba(245, 158, 11, 0.1);
-  color: #d97706;
-  border-color: rgba(245, 158, 11, 0.3);
+  background: linear-gradient(180deg, rgba(255, 251, 235, 0.96), rgba(255, 244, 219, 0.9));
+  color: #b86606;
+  border-color: rgba(245, 158, 11, 0.22);
+  box-shadow: 0 8px 16px rgba(245, 158, 11, 0.08);
 }
 
 .vote-btn.amber:hover {
-  background: rgba(245, 158, 11, 0.2);
-  border-color: #d97706;
-  transform: translateY(-4px);
-  box-shadow: 0 10px 20px rgba(245, 158, 11, 0.2);
-}
-
-.vote-btn.amber:active {
-  transform: translateY(-2px);
+  border-color: rgba(217, 119, 6, 0.35);
+  box-shadow: 0 10px 20px rgba(245, 158, 11, 0.12);
 }
 
 .vote-btn.amber.selected {
-  background: rgba(245, 158, 11, 0.25);
-  border-color: #d97706;
-  border-width: 3px;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+  border-color: rgba(217, 119, 6, 0.5);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1), 0 12px 22px rgba(245, 158, 11, 0.1);
 }
 
-/* Green Button */
 .vote-btn.green {
-  background: rgba(34, 197, 94, 0.1);
-  color: #16a34a;
-  border-color: rgba(34, 197, 94, 0.3);
+  background: linear-gradient(180deg, rgba(240, 253, 244, 0.95), rgba(226, 252, 234, 0.9));
+  color: #138a42;
+  border-color: rgba(34, 197, 94, 0.22);
+  box-shadow: 0 8px 16px rgba(34, 197, 94, 0.08);
 }
 
 .vote-btn.green:hover {
-  background: rgba(34, 197, 94, 0.2);
-  border-color: #16a34a;
-  transform: translateY(-4px);
-  box-shadow: 0 10px 20px rgba(34, 197, 94, 0.2);
-}
-
-.vote-btn.green:active {
-  transform: translateY(-2px);
+  border-color: rgba(22, 163, 74, 0.35);
+  box-shadow: 0 10px 20px rgba(34, 197, 94, 0.12);
 }
 
 .vote-btn.green.selected {
-  background: rgba(34, 197, 94, 0.25);
-  border-color: #16a34a;
-  border-width: 3px;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+  border-color: rgba(22, 163, 74, 0.48);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1), 0 12px 22px rgba(34, 197, 94, 0.1);
 }
 
 .vote-feedback {
-  color: #16a34a;
-  font-size: 1rem;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #107c3c;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.18);
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 800;
   animation: fadeInOut 2s ease-in-out;
 }
 
 @keyframes fadeInOut {
-  0% {
-    opacity: 0;
+  0% { opacity: 0; transform: translateY(2px); }
+  18% { opacity: 1; transform: translateY(0); }
+  82% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (min-width: 1024px) {
+  .voting-panel {
+    padding: 1rem;
+    border-radius: 20px;
   }
-  50% {
-    opacity: 1;
+
+  .voting-panel h3 {
+    font-size: 0.98rem;
   }
-  100% {
-    opacity: 0;
+
+  .vote-btn {
+    min-height: 74px;
+    padding: 0.9rem 0.85rem;
   }
 }
 
 @media (max-width: 768px) {
-  .voting-buttons {
-    grid-template-columns: 1fr;
+  .voting-panel {
+    border-radius: 16px 16px 0 0;
+    padding: 0.75rem 0.8rem calc(0.8rem + env(safe-area-inset-bottom));
+    margin-bottom: 0;
+    border-bottom: 0;
+    box-shadow: 0 -10px 28px rgba(10, 16, 39, 0.2);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.985), rgba(244, 248, 255, 0.97));
   }
-  
+
+  .voting-panel-header {
+    margin-bottom: 0.55rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "eyebrow context"
+      "title title"
+      "selection selection";
+    column-gap: 0.5rem;
+    row-gap: 0.2rem;
+    align-items: center;
+  }
+
+  .voting-panel-eyebrow {
+    font-size: 0.64rem;
+    margin: 0;
+    grid-area: eyebrow;
+  }
+
+  .voting-panel h3 {
+    font-size: 0.86rem;
+    line-height: 1.15;
+    grid-area: title;
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .voting-panel-context {
+    font-size: 0.7rem;
+    margin: 0;
+    grid-area: context;
+    justify-self: end;
+  }
+
+  .voting-panel-selection-row {
+    margin-top: 0.15rem;
+    grid-area: selection;
+  }
+
+  .voting-selection-pill {
+    font-size: 0.66rem;
+    padding: 0.26rem 0.5rem;
+  }
+
+  .voting-buttons {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.42rem;
+    margin-bottom: 0.4rem;
+  }
+
   .vote-btn {
-    min-height: 120px;
+    grid-template-columns: 1fr;
+    justify-items: center;
+    align-content: center;
+    gap: 0.18rem;
+    min-height: 78px;
+    padding: 0.5rem 0.35rem;
+    border-radius: 12px;
+    text-align: center;
+  }
+
+  .vote-btn .emoji {
+    font-size: 1.2rem;
+  }
+
+  .vote-btn .text {
+    font-size: 0.72rem;
+    margin: 0;
+  }
+
+  .vote-btn .description {
+    display: none;
+  }
+
+  .vote-btn .checkmark {
+    position: absolute;
+    top: 0.28rem;
+    right: 0.28rem;
+    width: 1rem;
+    height: 1rem;
+    font-size: 0.68rem;
+    padding: 0;
+  }
+
+  .vote-feedback {
+    font-size: 0.68rem;
+    padding: 0.25rem 0.5rem;
   }
 }

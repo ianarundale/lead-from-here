@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import VotingPanel from './components/VotingPanel';
 import BehaviorCard from './components/BehaviorCard';
 
 function App() {
+  const [presentationMode, setPresentationMode] = useState(false);
+  const [isScenarioNavCollapsed, setIsScenarioNavCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth <= 768;
+  });
   const [votingState, setVotingState] = useState({
     behaviors: [],
     currentBehaviorId: 1,
@@ -15,6 +20,8 @@ function App() {
   const [hasVoted, setHasVoted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [ws, setWs] = useState(null);
+  const autoCollapseTimerRef = useRef(null);
+  const previousSyncedBehaviorRef = useRef(null);
   const [userId] = useState(() => {
     // Generate or retrieve a user ID for this session
     let id = localStorage.getItem('userId');
@@ -95,6 +102,57 @@ function App() {
     };
   }, [userId]);
 
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 768) {
+        setIsScenarioNavCollapsed(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (!votingState.syncMode) {
+      previousSyncedBehaviorRef.current = votingState.currentBehaviorId;
+      return;
+    }
+
+    const previousBehaviorId = previousSyncedBehaviorRef.current;
+    const currentSyncedBehaviorId = votingState.currentBehaviorId;
+    previousSyncedBehaviorRef.current = currentSyncedBehaviorId;
+
+    if (previousBehaviorId == null || previousBehaviorId === currentSyncedBehaviorId) {
+      return;
+    }
+
+    if (typeof window === 'undefined' || window.innerWidth > 768) {
+      return;
+    }
+
+    const wasCollapsed = isScenarioNavCollapsed;
+    setIsScenarioNavCollapsed(false);
+
+    if (autoCollapseTimerRef.current) {
+      clearTimeout(autoCollapseTimerRef.current);
+    }
+
+    if (wasCollapsed) {
+      autoCollapseTimerRef.current = setTimeout(() => {
+        setIsScenarioNavCollapsed(true);
+      }, 1800);
+    }
+  }, [votingState.currentBehaviorId, votingState.syncMode, isScenarioNavCollapsed]);
+
+  useEffect(() => {
+    return () => {
+      if (autoCollapseTimerRef.current) {
+        clearTimeout(autoCollapseTimerRef.current);
+      }
+    };
+  }, []);
+
   // Use local behavior ID in independent mode, server's in sync mode
   const displayBehaviorId = localBehaviorId;
   const currentBehavior = votingState.behaviors.find(
@@ -107,6 +165,9 @@ function App() {
 
   const handleBehaviorNavigation = (behaviorId) => {
     setLocalBehaviorId(behaviorId); // Always update locally for instant feedback
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      setIsScenarioNavCollapsed(true);
+    }
     if (votingState.syncMode) {
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({
@@ -142,23 +203,34 @@ function App() {
           <div className="connected-users-badge" aria-live="polite">
             👥 {votingState.connectedUsers || 0} connected
           </div>
-          <div className="sync-toggle">
-            <label>
-              <input
-                type="checkbox"
-                checked={votingState.syncMode}
-                onChange={() => {
-                  if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({
-                      type: 'TOGGLE_SYNC'
-                    }));
-                  }
-                }}
-              />
-              <span className="toggle-label">
-                {votingState.syncMode ? "🔗 Sync'd" : '👤 Independent'}
-              </span>
-            </label>
+          <div className="status-controls">
+            <button
+              type="button"
+              className={`presentation-toggle ${presentationMode ? 'active' : ''}`}
+              onClick={() => setPresentationMode(prev => !prev)}
+              aria-pressed={presentationMode}
+              title="Toggle facilitator presentation mode"
+            >
+              {presentationMode ? '📺 Presentation On' : '📺 Presentation'}
+            </button>
+            <div className="sync-toggle">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={votingState.syncMode}
+                  onChange={() => {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                      ws.send(JSON.stringify({
+                        type: 'TOGGLE_SYNC'
+                      }));
+                    }
+                  }}
+                />
+                <span className="toggle-label">
+                  {votingState.syncMode ? "🔗 Sync'd" : '👤 Independent'}
+                </span>
+              </label>
+            </div>
           </div>
         </div>
         <div className="header-top">
@@ -167,51 +239,100 @@ function App() {
         <p>Interactive Leadership Behavior Assessment</p>
       </header>
 
-      <main className="app-main">
+      <main className={`app-main ${currentBehavior && !presentationMode ? 'has-mobile-voter-panel' : ''}`}>
         {isLoading && (
           <div className="loading-spinner">
             <div className="spinner"></div>
             <p>Loading scenarios…</p>
           </div>
         )}
-        <div className="behaviors-list" style={isLoading ? { visibility: 'hidden' } : {}}>
+        <div className={`behaviors-list ${presentationMode ? 'presenter-mode' : ''}`} style={isLoading ? { visibility: 'hidden' } : {}}>
           <div className="behaviors-list-inner">
-            <h3>Navigate Scenarios ({displayBehaviorId} of {votingState.behaviors.length})</h3>
-            <div className="behavior-buttons">
-              {votingState.behaviors.map((behavior) => (
-                <button
-                  key={behavior.id}
-                  className={`behavior-btn ${behavior.id === displayBehaviorId ? 'active' : ''} ${userVotes[behavior.id] ? 'voted' : ''}`}
-                  onClick={() => handleBehaviorNavigation(behavior.id)}
-                  title={behavior.scenario}
-                >
-                  {behavior.id}
-                  {userVotes[behavior.id] && (
-                    <span className={`vote-indicator ${userVotes[behavior.id]}`}>
-                      {userVotes[behavior.id] === 'red' && '🔴'}
-                      {userVotes[behavior.id] === 'amber' && '🟠'}
-                      {userVotes[behavior.id] === 'green' && '🟢'}
+            {presentationMode ? (
+              <>
+                <h3>Navigate Scenarios ({displayBehaviorId} of {votingState.behaviors.length})</h3>
+                <div className="behavior-buttons">
+                  {votingState.behaviors.map((behavior) => (
+                    <button
+                      key={behavior.id}
+                      className={`behavior-btn ${behavior.id === displayBehaviorId ? 'active' : ''} ${userVotes[behavior.id] ? 'voted' : ''}`}
+                      onClick={() => handleBehaviorNavigation(behavior.id)}
+                      title={behavior.scenario}
+                    >
+                      {behavior.id}
+                      {userVotes[behavior.id] && (
+                        <span className={`vote-indicator ${userVotes[behavior.id]}`}>
+                          {userVotes[behavior.id] === 'red' && '🔴'}
+                          {userVotes[behavior.id] === 'amber' && '🟠'}
+                          {userVotes[behavior.id] === 'green' && '🟢'}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="behaviors-list-header">
+                  <button
+                    type="button"
+                    className="scenario-nav-toggle"
+                    onClick={() => setIsScenarioNavCollapsed(prev => !prev)}
+                    aria-expanded={!isScenarioNavCollapsed}
+                    aria-label={`${isScenarioNavCollapsed ? 'Expand' : 'Collapse'} scenario navigation`}
+                  >
+                    <span className="scenario-nav-toggle-label">
+                      🧭 Scenario {displayBehaviorId} of {votingState.behaviors.length}
                     </span>
-                  )}
-                </button>
-              ))}
-            </div>
+                    <span className={`scenario-nav-toggle-chevron ${isScenarioNavCollapsed ? '' : 'open'}`} aria-hidden="true">
+                      ▾
+                    </span>
+                  </button>
+                </div>
+                {!isScenarioNavCollapsed && (
+                  <div className="behavior-buttons">
+                    {votingState.behaviors.map((behavior) => (
+                      <button
+                        key={behavior.id}
+                        className={`behavior-btn ${behavior.id === displayBehaviorId ? 'active' : ''} ${userVotes[behavior.id] ? 'voted' : ''}`}
+                        onClick={() => handleBehaviorNavigation(behavior.id)}
+                        title={behavior.scenario}
+                      >
+                        {behavior.id}
+                        {userVotes[behavior.id] && (
+                          <span className={`vote-indicator ${userVotes[behavior.id]}`}>
+                            {userVotes[behavior.id] === 'red' && '🔴'}
+                            {userVotes[behavior.id] === 'amber' && '🟠'}
+                            {userVotes[behavior.id] === 'green' && '🟢'}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
 
         {currentBehavior && (
-          <>
+          <div className={`content-layout ${presentationMode ? 'presentation-mode' : ''}`}>
             <BehaviorCard 
               behavior={currentBehavior} 
               userVote={userVoteForCurrentBehavior}
+              presentationMode={presentationMode}
             />
-            <VotingPanel
-              behavior={currentBehavior}
-              onVote={handleVote}
-              hasVoted={hasVoted}
-              userVote={userVoteForCurrentBehavior}
-            />
-          </>
+            {!presentationMode && (
+              <div className="voting-panel-column">
+                <VotingPanel
+                  behavior={currentBehavior}
+                  onVote={handleVote}
+                  hasVoted={hasVoted}
+                  userVote={userVoteForCurrentBehavior}
+                />
+              </div>
+            )}
+          </div>
         )}
       </main>
     </div>
