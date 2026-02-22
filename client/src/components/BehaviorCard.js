@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import '../styles/BehaviorCard.css';
 
-function BehaviorCard({ behavior, userVote, presentationMode = false }) {
+function BehaviorCard({
+  behavior,
+  userVote,
+  presentationMode = false,
+  canToggleScenarioNav = false,
+  isScenarioNavExpanded = false,
+  onToggleScenarioNav
+}) {
   const [isVoteStatsCollapsed, setIsVoteStatsCollapsed] = useState(true);
   const [isScenarioPillAnimating, setIsScenarioPillAnimating] = useState(false);
 
@@ -47,9 +54,24 @@ function BehaviorCard({ behavior, userVote, presentationMode = false }) {
     <div className={`behavior-card ${presentationMode ? 'presentation-mode' : ''}`}>
       <div className="scenario-section">
         <div className="scenario-meta">
-          <span className={`scenario-pill ${isScenarioPillAnimating ? 'changed' : ''}`}>
-            Scenario {behavior.id}
-          </span>
+          {canToggleScenarioNav ? (
+            <button
+              type="button"
+              className={`scenario-pill scenario-pill-button ${isScenarioPillAnimating ? 'changed' : ''}`}
+              onClick={onToggleScenarioNav}
+              aria-expanded={isScenarioNavExpanded}
+              aria-label={`${isScenarioNavExpanded ? 'Hide' : 'Show'} scenario navigation`}
+            >
+              <span>Scenario {behavior.id}</span>
+              <span className={`scenario-pill-chevron ${isScenarioNavExpanded ? 'open' : ''}`} aria-hidden="true">
+                ▾
+              </span>
+            </button>
+          ) : (
+            <span className={`scenario-pill ${isScenarioPillAnimating ? 'changed' : ''}`}>
+              Scenario {behavior.id}
+            </span>
+          )}
           {userVote && !presentationMode && (
             <span className={`user-vote user-vote-meta ${userVote}`}>
               Your vote: {userVoteLabel}

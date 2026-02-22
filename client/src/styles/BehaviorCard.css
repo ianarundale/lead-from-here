@@ -53,6 +53,32 @@
   letter-spacing: 0.02em;
 }
 
+.scenario-pill-button {
+  cursor: pointer;
+  appearance: none;
+  font: inherit;
+}
+
+.scenario-pill-button:hover {
+  border-color: rgba(82, 110, 255, 0.28);
+  background: rgba(82, 110, 255, 0.16);
+}
+
+.scenario-pill-button:focus-visible {
+  outline: 2px solid rgba(73, 109, 255, 0.35);
+  outline-offset: 2px;
+}
+
+.scenario-pill-chevron {
+  display: inline-flex;
+  margin-left: 0.1rem;
+  transition: transform 0.18s ease;
+}
+
+.scenario-pill-chevron.open {
+  transform: rotate(180deg);
+}
+
 .scenario-pill.changed {
   animation: scenarioPillPulse 0.75s ease;
 }

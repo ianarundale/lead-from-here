@@ -204,7 +204,10 @@ function App() {
             <p>Loading scenarios…</p>
           </div>
         )}
-        <div className={`behaviors-list ${presentationMode ? 'presenter-mode' : ''}`} style={isLoading ? { visibility: 'hidden' } : {}}>
+        <div
+          className={`behaviors-list ${presentationMode ? 'presenter-mode' : ''} ${!presentationMode && isScenarioNavCollapsed ? 'collapsed' : ''}`}
+          style={isLoading ? { visibility: 'hidden' } : {}}
+        >
           <div className="behaviors-list-inner">
             {presentationMode ? (
               <>
@@ -231,22 +234,6 @@ function App() {
               </>
             ) : (
               <>
-                <div className="behaviors-list-header">
-                  <button
-                    type="button"
-                    className="scenario-nav-toggle"
-                    onClick={() => setIsScenarioNavCollapsed(prev => !prev)}
-                    aria-expanded={!isScenarioNavCollapsed}
-                    aria-label={`${isScenarioNavCollapsed ? 'Expand' : 'Collapse'} scenario navigation`}
-                  >
-                    <span className="scenario-nav-toggle-label">
-                      🧭 Scenario {displayBehaviorId} of {votingState.behaviors.length}
-                    </span>
-                    <span className={`scenario-nav-toggle-chevron ${isScenarioNavCollapsed ? '' : 'open'}`} aria-hidden="true">
-                      ▾
-                    </span>
-                  </button>
-                </div>
                 {!isScenarioNavCollapsed && (
                   <div className="behavior-buttons">
                     {votingState.behaviors.map((behavior) => (
@@ -279,6 +266,9 @@ function App() {
               behavior={currentBehavior} 
               userVote={userVoteForCurrentBehavior}
               presentationMode={presentationMode}
+              canToggleScenarioNav={!presentationMode}
+              isScenarioNavExpanded={!isScenarioNavCollapsed}
+              onToggleScenarioNav={() => setIsScenarioNavCollapsed(prev => !prev)}
             />
             {!presentationMode && (
               <div className="voting-panel-column">

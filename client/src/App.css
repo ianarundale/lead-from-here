@@ -207,6 +207,15 @@
   backdrop-filter: blur(12px);
 }
 
+.behaviors-list.collapsed {
+  margin-top: 0;
+  margin-bottom: 0;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+  box-shadow: none;
+  background: transparent;
+}
+
 .behaviors-list-inner {
   max-width: var(--app-max-width);
   margin: 0 auto;
@@ -215,6 +224,12 @@
   align-items: stretch;
   flex-direction: column;
   gap: 0.8rem;
+}
+
+.behaviors-list.collapsed .behaviors-list-inner {
+  padding-top: 0;
+  padding-bottom: 0;
+  min-height: 0;
 }
 
 .behaviors-list-header {
@@ -487,6 +502,11 @@
   .behaviors-list {
     margin-top: 0.75rem;
     margin-bottom: 1rem;
+  }
+
+  .behaviors-list.collapsed {
+    margin-top: 0;
+    margin-bottom: 0.35rem;
   }
 
   .behaviors-list-inner {
