@@ -41,7 +41,8 @@
   margin-top: 0.55rem;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .voting-selection-pill {
@@ -224,6 +225,20 @@
   animation: fadeInOut 2s ease-in-out;
 }
 
+.vote-feedback-inline {
+  min-width: 7.9rem;
+  justify-content: center;
+  margin-left: auto;
+  opacity: 0;
+  visibility: hidden;
+  animation: none;
+}
+
+.vote-feedback-inline.visible {
+  visibility: visible;
+  animation: fadeInOut 2s ease-in-out;
+}
+
 @keyframes fadeInOut {
   0% { opacity: 0; transform: translateY(2px); }
   18% { opacity: 1; transform: translateY(0); }
@@ -295,11 +310,18 @@
   .voting-panel-selection-row {
     margin-top: 0.15rem;
     grid-area: selection;
+    gap: 0.35rem;
   }
 
   .voting-selection-pill {
     font-size: 0.66rem;
     padding: 0.26rem 0.5rem;
+  }
+
+  .vote-feedback-inline {
+    min-width: 6.2rem;
+    font-size: 0.64rem;
+    padding: 0.22rem 0.4rem;
   }
 
   .voting-buttons {

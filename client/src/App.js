@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import VotingPanel from './components/VotingPanel';
 import BehaviorCard from './components/BehaviorCard';
@@ -20,8 +20,6 @@ function App() {
   const [hasVoted, setHasVoted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [ws, setWs] = useState(null);
-  const autoCollapseTimerRef = useRef(null);
-  const previousSyncedBehaviorRef = useRef(null);
   const [userId] = useState(() => {
     // Generate or retrieve a user ID for this session
     let id = localStorage.getItem('userId');
@@ -111,46 +109,6 @@ function App() {
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  useEffect(() => {
-    if (!votingState.syncMode) {
-      previousSyncedBehaviorRef.current = votingState.currentBehaviorId;
-      return;
-    }
-
-    const previousBehaviorId = previousSyncedBehaviorRef.current;
-    const currentSyncedBehaviorId = votingState.currentBehaviorId;
-    previousSyncedBehaviorRef.current = currentSyncedBehaviorId;
-
-    if (previousBehaviorId == null || previousBehaviorId === currentSyncedBehaviorId) {
-      return;
-    }
-
-    if (typeof window === 'undefined' || window.innerWidth > 768) {
-      return;
-    }
-
-    const wasCollapsed = isScenarioNavCollapsed;
-    setIsScenarioNavCollapsed(false);
-
-    if (autoCollapseTimerRef.current) {
-      clearTimeout(autoCollapseTimerRef.current);
-    }
-
-    if (wasCollapsed) {
-      autoCollapseTimerRef.current = setTimeout(() => {
-        setIsScenarioNavCollapsed(true);
-      }, 1800);
-    }
-  }, [votingState.currentBehaviorId, votingState.syncMode, isScenarioNavCollapsed]);
-
-  useEffect(() => {
-    return () => {
-      if (autoCollapseTimerRef.current) {
-        clearTimeout(autoCollapseTimerRef.current);
-      }
-    };
   }, []);
 
   // Use local behavior ID in independent mode, server's in sync mode

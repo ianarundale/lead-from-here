@@ -3,12 +3,19 @@ import '../styles/BehaviorCard.css';
 
 function BehaviorCard({ behavior, userVote, presentationMode = false }) {
   const [isVoteStatsCollapsed, setIsVoteStatsCollapsed] = useState(true);
+  const [isScenarioPillAnimating, setIsScenarioPillAnimating] = useState(false);
 
   useEffect(() => {
     if (presentationMode) {
       setIsVoteStatsCollapsed(false);
     }
   }, [presentationMode]);
+
+  useEffect(() => {
+    setIsScenarioPillAnimating(true);
+    const timer = setTimeout(() => setIsScenarioPillAnimating(false), 800);
+    return () => clearTimeout(timer);
+  }, [behavior.id]);
 
   // Calculate total votes
   const totalVotes = behavior.votes.red + behavior.votes.amber + behavior.votes.green;
@@ -30,12 +37,24 @@ function BehaviorCard({ behavior, userVote, presentationMode = false }) {
   const isTieForLead = totalVotes > 0 && topVote.count === secondVote.count;
   const leadPercentage = topVote ? getPercentage(topVote.count) : 0;
   const leadMargin = topVote ? topVote.count - secondVote.count : 0;
+  const userVoteLabel = {
+    red: 'Not Okay',
+    amber: 'It Depends',
+    green: 'Totally Fine'
+  }[userVote];
 
   return (
     <div className={`behavior-card ${presentationMode ? 'presentation-mode' : ''}`}>
       <div className="scenario-section">
         <div className="scenario-meta">
-          <span className="scenario-pill">Scenario {behavior.id}</span>
+          <span className={`scenario-pill ${isScenarioPillAnimating ? 'changed' : ''}`}>
+            Scenario {behavior.id}
+          </span>
+          {userVote && !presentationMode && (
+            <span className={`user-vote user-vote-meta ${userVote}`}>
+              Your vote: {userVoteLabel}
+            </span>
+          )}
         </div>
         <h2>Scenario Prompt</h2>
         <p className="scenario-text">{behavior.scenario}</p>
@@ -51,17 +70,6 @@ function BehaviorCard({ behavior, userVote, presentationMode = false }) {
           </div>
         )}
       </div>
-
-      {userVote && !presentationMode && (
-        <div className="user-vote-section">
-          <h3>Your Vote</h3>
-          <div className={`user-vote ${userVote}`}>
-            {userVote === 'red' && '🔴 Not Okay - Crosses a line'}
-            {userVote === 'amber' && '🟠 It Depends - Needs context'}
-            {userVote === 'green' && '🟢 Totally Fine - Appropriate'}
-          </div>
-        </div>
-      )}
 
       <div className={`vote-stats ${isVoteStatsCollapsed ? 'collapsed' : ''} ${presentationMode ? 'presentation-mode' : ''}`}>
         <div className="vote-stats-header">

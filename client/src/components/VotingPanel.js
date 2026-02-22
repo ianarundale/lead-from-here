@@ -24,6 +24,12 @@ function VotingPanel({ behavior, onVote, hasVoted, userVote }) {
           ) : (
             <span className="voting-selection-pill empty">Choose one option</span>
           )}
+          <span
+            className={`vote-feedback vote-feedback-inline ${hasVoted ? 'visible' : ''}`}
+            aria-live="polite"
+          >
+            ✓ Vote recorded!
+          </span>
         </div>
       </div>
       <div className="voting-buttons">
@@ -60,8 +66,6 @@ function VotingPanel({ behavior, onVote, hasVoted, userVote }) {
           {userVote === 'green' && <span className="checkmark">✓</span>}
         </button>
       </div>
-      
-      {hasVoted && <div className="vote-feedback">✓ Vote recorded!</div>}
     </div>
   );
 }
