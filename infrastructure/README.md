@@ -37,22 +37,36 @@ On push to `main` or `serverless`, it:
 2. Lints the React app
 3. Assumes AWS role via OIDC
 4. Runs `npx sst install`
-5. Runs `npx sst deploy --stage <sanitised-branch-name>`
+5. Runs `npx sst deploy --stage prod`
 
-Stage names are derived from branch names (lowercase alphanumerics and dashes).
+## SST CLI reference
 
-## Useful commands
+All commands require AWS credentials in the environment (e.g. via `aws sso login` or
+exported `AWS_*` env vars). The `--stage` flag is required and isolates all provisioned
+resources (DynamoDB tables, Lambda, API Gateway, S3/CloudFront) under a named namespace.
 
 ```bash
-# Start local dev (Lambda runs locally, invoked via real API Gateway)
+# Install SST providers (run once after cloning or after sst.config.ts changes)
+npx sst install
+
+# Start local dev server — Lambda runs locally, invoked via live API Gateway
 npx sst dev --stage <name> --mode basic
 
-# Preview infrastructure changes
+# Preview infrastructure changes without deploying
 npx sst diff --stage <name>
 
-# Deploy manually
+# Deploy all resources to AWS
 npx sst deploy --stage <name>
 
-# Tear down a stage
+# Tear down all resources for a stage
 npx sst remove --stage <name>
 ```
+
+### Stages
+
+Each `--stage` is a fully independent deployment. Resources are prefixed with the stage
+name in AWS (e.g. `lead-from-here-prod-ConnectionsTable`). The production stage used by
+GitHub Actions is `prod`.
+
+Use a personal stage name (e.g. `--stage alice`) for local testing so you don't affect
+the shared `prod` environment.

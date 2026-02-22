@@ -31,7 +31,7 @@ jobs:
         with:
           ref: ${{ github.ref_name }}
 
-      - name: Set branch name for SST stage
+      - name: Set branch name for OIDC session / SST stage
         run: |
           BRANCH_NAME=$(echo '${{ github.ref_name }}' \
             | tr '[:upper:]' '[:lower:]' \

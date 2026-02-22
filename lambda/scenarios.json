@@ -60,6 +60,13 @@
         "Is that trust and discretion, or manipulation and secrecy?",
         "How do you know when it crosses the line?"
       ]
+    },
+     {
+      "scenario": "Scenario 9 - copy of 8",
+      "prompts": [
+        "Is that trust and discretion, or manipulation and secrecy?",
+        "How do you know when it crosses the line?"
+      ]
     }
   ]
 }

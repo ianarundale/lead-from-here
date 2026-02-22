@@ -92,7 +92,7 @@ Deployed via GitHub Actions on push to `main` or `serverless`. See [infrastructu
 
 ```bash
 # Manual deploy
-npx sst deploy --stage production
+npx sst deploy --stage local
 
 # Tear down a stage
 npx sst remove --stage <stage>

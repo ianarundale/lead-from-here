@@ -138,7 +138,7 @@ function App() {
     <div className="App">
       <header className="app-header">
         <div className="header-top">
-          <h1>🎯 Lead From Here 5</h1>
+          <h1>🎯 Lead From Here v2</h1>
           <div className="sync-toggle">
             <label>
               <input
