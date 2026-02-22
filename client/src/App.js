@@ -7,7 +7,8 @@ function App() {
   const [votingState, setVotingState] = useState({
     behaviors: [],
     currentBehaviorId: 1,
-    syncMode: true
+    syncMode: true,
+    connectedUsers: 0
   });
   const [localBehaviorId, setLocalBehaviorId] = useState(1); // Track independent navigation
   const [userVotes, setUserVotes] = useState({}); // Track user's votes: { behaviorId: 'red'/'amber'/'green' }
@@ -137,6 +138,9 @@ function App() {
   return (
     <div className="App">
       <header className="app-header">
+        <div className="connected-users-badge" aria-live="polite">
+          👥 {votingState.connectedUsers || 0} connected
+        </div>
         <div className="header-top">
           <h1>🎯 Lead From Here v2</h1>
           <div className="sync-toggle">

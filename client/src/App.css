@@ -8,9 +8,23 @@
 }
 
 .app-header {
+  position: relative;
   text-align: center;
   padding: 2rem 1rem;
   color: white;
+}
+
+.connected-users-badge {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  backdrop-filter: blur(10px);
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .header-top {
@@ -166,6 +180,12 @@
 }
 
 @media (max-width: 768px) {
+  .connected-users-badge {
+    position: static;
+    display: inline-flex;
+    margin-bottom: 1rem;
+  }
+
   .app-header h1 {
     font-size: 2rem;
   }

@@ -58,6 +58,28 @@ function getApiGateway() {
   });
 }
 
+// Helper: Get unique connected user count (falls back to connectionId when userId is missing)
+async function getConnectedUsersCount() {
+  const result = await dynamoDB.scan({
+    TableName: TABLE_CONNECTIONS,
+    ProjectionExpression: 'connectionId, userId'
+  }).promise();
+
+  const uniqueUsers = new Set(
+    (result.Items || []).map(conn => conn.userId || conn.connectionId)
+  );
+
+  return uniqueUsers.size;
+}
+
+// Helper: Attach live connection metadata to state payloads without persisting it
+async function withLiveMetadata(state) {
+  return {
+    ...state,
+    connectedUsers: await getConnectedUsersCount()
+  };
+}
+
 // Helper: Broadcast message to all connected clients
 async function broadcast(message, excludeConnectionId = null) {
   const connections = await dynamoDB.scan({
@@ -144,6 +166,9 @@ async function handleDisconnect(connectionId) {
     Key: { connectionId }
   }).promise();
 
+  const votingState = await getVotingState();
+  await broadcast({ type: 'STATE_UPDATE', data: await withLiveMetadata(votingState) });
+
   return { statusCode: 200, body: 'Disconnected' };
 }
 
@@ -181,7 +206,7 @@ async function handleMessage(connectionId, body) {
 
         await saveVotingState(votingState);
 
-        await broadcast({ type: 'STATE_UPDATE', data: votingState });
+        await broadcast({ type: 'STATE_UPDATE', data: await withLiveMetadata(votingState) });
       }
       break;
     }
@@ -192,7 +217,7 @@ async function handleMessage(connectionId, body) {
       // Only broadcast behavior change in sync mode
       if (votingState.syncMode) {
         await saveVotingState(votingState);
-        await broadcast({ type: 'BEHAVIOR_CHANGED', data: votingState }, connectionId);
+        await broadcast({ type: 'BEHAVIOR_CHANGED', data: await withLiveMetadata(votingState) }, connectionId);
       }
       break;
     }
@@ -201,7 +226,7 @@ async function handleMessage(connectionId, body) {
       votingState.syncMode = !votingState.syncMode;
 
       await saveVotingState(votingState);
-      await broadcast({ type: 'STATE_UPDATE', data: votingState });
+      await broadcast({ type: 'STATE_UPDATE', data: await withLiveMetadata(votingState) });
       break;
     }
 
@@ -213,7 +238,7 @@ async function handleMessage(connectionId, body) {
       votingState.currentBehaviorId = 1;
 
       await saveVotingState(votingState);
-      await broadcast({ type: 'STATE_UPDATE', data: votingState });
+      await broadcast({ type: 'STATE_UPDATE', data: await withLiveMetadata(votingState) });
       break;
     }
 
@@ -232,10 +257,14 @@ async function handleMessage(connectionId, body) {
       // Send initial state — this must be done here rather than in $connect
       // because postToConnection is only valid after $connect returns 200.
       const apigw = getApiGateway();
+      const stateWithLiveMetadata = await withLiveMetadata(votingState);
       await apigw.postToConnection({
         ConnectionId: connectionId,
-        Data: JSON.stringify({ type: 'INITIAL_STATE', data: votingState })
+        Data: JSON.stringify({ type: 'INITIAL_STATE', data: stateWithLiveMetadata })
       }).promise();
+
+      // Refresh all clients so connected user count updates immediately.
+      await broadcast({ type: 'STATE_UPDATE', data: stateWithLiveMetadata });
       break;
     }
   }
@@ -256,7 +285,7 @@ export const restHandler = async (event) => {
       await saveVotingState(votingState);
 
       // Broadcast to all connected clients
-      await broadcast({ type: 'STATE_UPDATE', data: votingState });
+      await broadcast({ type: 'STATE_UPDATE', data: await withLiveMetadata(votingState) });
 
       return {
         statusCode: 200,
