@@ -1,13 +1,12 @@
-const AWS = require('aws-sdk');
+import AWS from 'aws-sdk';
+import ApiGatewayManagementApi from 'aws-sdk/clients/apigatewaymanagementapi.js';
+import SCENARIOS from './scenarios.json';
+
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
-const ApiGatewayManagementApi = require('aws-sdk/clients/apigatewaymanagementapi');
 
 const TABLE_CONNECTIONS = process.env.CONNECTIONS_TABLE;
 const TABLE_VOTING = process.env.VOTING_TABLE;
 const API_ENDPOINT = process.env.API_ENDPOINT;
-
-// Load scenarios from scenarios.json
-const SCENARIOS = require('./scenarios.json');
 
 // Initialize default voting state
 const getDefaultState = () => ({
@@ -90,7 +89,7 @@ async function broadcast(message, excludeConnectionId = null) {
 }
 
 // Lambda Handler
-exports.handler = async (event) => {
+export const handler = async (event) => {
   const routeKey = event?.requestContext?.routeKey || event?.routeKey;
   const connectionId = event?.requestContext?.connectionId || event?.connectionId;
   const body = event?.body;
@@ -132,15 +131,9 @@ async function handleConnect(connectionId, event) {
     }
   }).promise();
 
-  // Send initial state to the new client
-  const votingState = await getVotingState();
-  const apigw = getApiGateway();
-
-  await apigw.postToConnection({
-    ConnectionId: connectionId,
-    Data: JSON.stringify({ type: 'INITIAL_STATE', data: votingState })
-  }).promise();
-
+  // Note: postToConnection cannot be called during $connect — API Gateway
+  // returns 410 until the handler returns 200. Initial state is sent in
+  // response to the CLIENT_CONNECT message the client sends on open.
   return { statusCode: 200, body: 'Connected' };
 }
 
@@ -235,6 +228,14 @@ async function handleMessage(connectionId, body) {
           ':userId': userId
         }
       }).promise();
+
+      // Send initial state — this must be done here rather than in $connect
+      // because postToConnection is only valid after $connect returns 200.
+      const apigw = getApiGateway();
+      await apigw.postToConnection({
+        ConnectionId: connectionId,
+        Data: JSON.stringify({ type: 'INITIAL_STATE', data: votingState })
+      }).promise();
       break;
     }
   }
@@ -243,7 +244,7 @@ async function handleMessage(connectionId, body) {
 };
 
 // REST API Handler for /reset and /status
-exports.restHandler = async (event) => {
+export const restHandler = async (event) => {
   const httpMethod = event?.requestContext?.http?.method || event?.httpMethod;
   const path = event?.rawPath || event?.path;
 
