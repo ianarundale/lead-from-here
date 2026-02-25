@@ -27,10 +27,10 @@
       ]
     },
     {
-      "scenario": "A senior colleague asks you to book a restaurant for their anniversary or collect a parcel that was delivered to the office.",
+      "scenario": "You discover that a senior leader has ignored complaints about another senior leader because it was “too tricky” to get involved. Nothing was done.",
       "prompts": [
-        "This one’s outside the job description — but would you still feel able to say no?",
-        "What’s the risk if you say yes?"
+        "What responsibility do leaders have to act when power dynamics make situations uncomfortable?",
+        "How does inaction at senior levels shape organisational culture?"
       ]
     },
     {
@@ -62,10 +62,10 @@
       ]
     },
      {
-      "scenario": "Scenario 9 - copy of 8",
+      "scenario": "A senior leader consistently arrives five minutes late to team meetings.",
       "prompts": [
-        "Is that trust and discretion, or manipulation and secrecy?",
-        "How do you know when it crosses the line?"
+        "What message does repeated lateness from a senior leader send - intentionally or unintentionally - to the team?",
+        "At what point does a small habit become a cultural signal?"
       ]
     }
   ]
